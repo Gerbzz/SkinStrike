@@ -55,4 +55,4 @@ SkinStrike currently applies full-image color washes. It does not yet author mas
 
 Future work can add localized layer controls, richer finish compositing, preview and asset validation, and an end-to-end Valve-compatible round trip. Those are goals rather than shipped capabilities.
 
-This private repository grants no public license for its project source. Third-party crates retain their own licenses.
+This repository grants no public license for its project source. Third-party crates retain their own licenses.
