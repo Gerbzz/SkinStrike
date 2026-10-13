@@ -6,7 +6,7 @@
 
 SkinStrike lets CS2 creators compose a finish as layered image artwork. Start with a base PNG, add color and positioned art, keep an editable project, and export a full-resolution PNG for review.
 
-### Highlights
+## Highlights
 
 - Combine color washes and artwork layers.
 - Adjust placement, visibility, and opacity.
