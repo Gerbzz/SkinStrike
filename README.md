@@ -1,8 +1,20 @@
 # SkinStrike
 
-**A native Rust layered PNG finish editor for CS2 creators.** SkinStrike combines color washes and positioned artwork, keeps an editable project, and exports a full-resolution PNG. It is an image-authoring prototype, not a tool that produces a game-ready weapon skin.
+**by PWDS**
 
-> **Current stage:** Layered artwork, exact imported grayscale alpha data, an editor-only UV guide, portable projects, the CLI, and the native desktop window are implemented and covered by headless tests. The native window has not received visual workflow review. Valve-compatible material and texture round trips have not been verified.
+**Explore a finish in layers.**
+
+SkinStrike lets CS2 creators compose a finish as layered image artwork. Start with a base PNG, add color and positioned art, keep an editable project, and export a full-resolution PNG for review.
+
+### Highlights
+
+- Combine color washes and artwork layers.
+- Adjust placement, visibility, and opacity.
+- Keep an editable source and export a PNG.
+
+## Current status
+
+Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have headless coverage, but the native window has not received visual workflow review. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
 
 ## A finish from source to export
 
