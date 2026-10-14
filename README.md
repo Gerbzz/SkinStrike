@@ -21,9 +21,15 @@ SkinStrike lets CS2 creators compose a finish as layered image artwork. Start wi
 - Adjust placement, visibility, and opacity.
 - Keep an editable source and export a PNG.
 
+## Editor preview
+
+![SkinStrike native editor displaying a procedural blue and orange texture](assets/screenshots/skinstrike-editor.png)
+
+This [app-rendered capture](docs/SCREENSHOT_PROVENANCE.md) shows the current native finish canvas with an original synthetic texture. It is a view of one opened image, with no artwork layers yet.
+
 ## Current status
 
-Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have headless coverage, but the native window has not received visual workflow review. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
+Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have headless coverage, and one native editor state has been visually inspected. Interactive layer workflows still need hands-on review. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
 
 ## A finish from source to export
 
@@ -74,7 +80,7 @@ Color channels and opacity are integers from 0 to 255. To exercise the new chann
 
 ## Scope and next steps
 
-SkinStrike does not yet offer brush or mask painting, a rotatable verified weapon preview, Valve material generation, or a verified Counter-Strike asset bundle. The native window has compiled and passed headless logic checks, but visual workflow review and clean-machine packaging are still pending.
+SkinStrike does not yet offer brush or mask painting, a rotatable verified weapon preview, Valve material generation, or a verified Counter-Strike asset bundle. The native window has compiled, passed headless logic checks, and rendered the documented synthetic texture. Interactive workflow review and clean-machine packaging are still pending.
 
 Limits: 128 layers, 80 characters per layer name, 4096 pixels per PNG side, 32 MiB per PNG file, 64 megapixels across unique referenced decoded assets, and 256 MiB per project JSON. Preview is capped at 1024 pixels; final export uses the full canvas. Existing PNG replacements are limited to 32 MiB. A Valve-compatible round trip remains a future verification gate.
 

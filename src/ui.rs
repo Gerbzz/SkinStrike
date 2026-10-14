@@ -177,6 +177,11 @@ impl Default for SkinStrikeApp {
 }
 
 impl SkinStrikeApp {
+    /// Allow a one-shot capture window to close its synthetic unsaved document.
+    pub fn allow_capture_close(&mut self) {
+        self.allow_close = true;
+    }
+
     fn dirty(&self) -> bool {
         match (&self.document, &self.saved_state) {
             (Some(doc), Some(saved)) => doc.state() != *saved,
