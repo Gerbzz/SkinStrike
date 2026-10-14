@@ -1,21 +1,70 @@
 {
   "app": "SkinStrike",
   "asset": "assets/branding/SkinStrike.png",
-  "method": "Lossless rectangular extraction of original pixels with ImageMagick. No scaling, recoloring, tracing, generation, transparency fabrication or animal changes. Original cream outside rounded corners retained. Labels excluded.",
-  "coordinate_system": "Origin top-left; crop bounds [left, top, right, bottom), right/bottom exclusive.",
-  "source_sha256": "511411a7067620626aa7ca176ef259a994395a391128db66d7c80c9418c4e3b2",
-  "crop_bounds": [
-    696,
-    0,
-    1352,
-    656
-  ],
+  "method": "Measured rounded alpha mask applied to the original 656x656 logo tile, then translated by whole pixels to center its visible bounds. Original visible RGB and masked visible RGBA were verified unchanged.",
+  "source_tile": {
+    "repository": "Gerbzz/SkinStrike",
+    "commit": "eb81e2685016da66eee19d30b602902b06874cb2",
+    "path": "assets/branding/SkinStrike.png",
+    "sha256": "89a5b650ee83bd39f98f59eb8c725a274b6d1cacd926e5b0146b746d6adba121",
+    "git_blob_sha": "4b51700cdbc53334970b074ef1c72926772a0031"
+  },
+  "mask_and_centering": {
+    "inset_pixels": 1.5,
+    "masked_alpha_bbox": [
+      18,
+      25,
+      639,
+      630
+    ],
+    "centered_alpha_bbox": [
+      17,
+      25,
+      638,
+      630
+    ],
+    "integer_translation": [
+      -1,
+      0
+    ],
+    "padding_ltrb": [
+      17,
+      25,
+      18,
+      26
+    ],
+    "original_visible_rgb_exact": true,
+    "masked_visible_rgba_exact": true,
+    "transparent_corners": true
+  },
   "dimensions": [
     656,
     656
   ],
-  "sha256": "89a5b650ee83bd39f98f59eb8c725a274b6d1cacd926e5b0146b746d6adba121",
-  "decoded_rgb_sha256": "bdf70bc58f009161926df9bb35fe76e7c04e8d7cea2b369ceafd8128d2146d59",
-  "pixel_equality_verified": true,
-  "git_blob_sha": "4b51700cdbc53334970b074ef1c72926772a0031"
+  "mode": "RGBA",
+  "sha256": "568663d0c366553da82dfbce620d0b7eede7dd1496124bea68bbe5523bff71df",
+  "decoded_rgba_sha256": "45d58f8235ffba7d4bef27fe59eee4b0e0332af40baa4e1c44af407f9f7cd045",
+  "git_blob_sha": "3d7f8c6fb8a6c0d1b075556e0262a7aaf043b655",
+  "tool": "ImageMagick 7.1.2-34 Q16 x64",
+  "original_tile_provenance": {
+    "app": "SkinStrike",
+    "asset": "assets/branding/SkinStrike.png",
+    "method": "Lossless rectangular extraction of original pixels with ImageMagick. No scaling, recoloring, tracing, generation, transparency fabrication or animal changes. Original cream outside rounded corners retained. Labels excluded.",
+    "coordinate_system": "Origin top-left; crop bounds [left, top, right, bottom), right/bottom exclusive.",
+    "source_sha256": "511411a7067620626aa7ca176ef259a994395a391128db66d7c80c9418c4e3b2",
+    "crop_bounds": [
+      696,
+      0,
+      1352,
+      656
+    ],
+    "dimensions": [
+      656,
+      656
+    ],
+    "sha256": "89a5b650ee83bd39f98f59eb8c725a274b6d1cacd926e5b0146b746d6adba121",
+    "decoded_rgb_sha256": "bdf70bc58f009161926df9bb35fe76e7c04e8d7cea2b369ceafd8128d2146d59",
+    "pixel_equality_verified": true,
+    "git_blob_sha": "4b51700cdbc53334970b074ef1c72926772a0031"
+  }
 }
