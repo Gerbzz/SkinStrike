@@ -20,6 +20,8 @@ The gallery scans only the selected root and direct collection folders. It index
 
 The current native screenshot is a functional but sparse editor. The next UI should give the work a prominent canvas, a legible tool strip, a clear properties/layers panel, and a gallery with image-first cards, useful labels, empty/error states, and an obvious route back into the editor. This is a quality direction, not a claim of matching another application's feature set.
 
+The approved SkinStrike logo and name anchor the startup/library view and any real loading state. A restrained PWDS publisher credit belongs there and in About. The active editor needs useful navigation and the native window title, not a permanent logo/name block. No artificial loading delay is added.
+
 ## Verification and limits
 
 Use real save/reopen/export tests for paint, collection creation and project persistence, content-derived thumbnails, corrupt-file handling, missing roots, and traversal rejection. Run hosted Windows build/tests before any native capture. Capture the genuine executable with synthetic creator-owned inputs and check the image visually. No Office PC dependency builds while free space is near 20 GiB. Do not merge the draft into main or publish an installer during this pass.
