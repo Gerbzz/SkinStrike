@@ -2059,7 +2059,7 @@ mod tests {
         assert_eq!(app.document.as_ref().unwrap().state(), before);
         app.open_project(&path).unwrap();
         assert!(!app.dirty());
-        assert_eq!(app.current_project_title(), "First finish");
+        assert_eq!(app.current_project_title(), "portable");
     }
 
     #[test]
@@ -2118,6 +2118,7 @@ mod tests {
             .unwrap();
         app.open_project(&path).unwrap();
         assert!(!app.dirty());
+        assert_eq!(app.current_project_title(), "First finish");
         app.add_color().unwrap();
         let before = app.document.as_ref().unwrap().state();
         app.library_target = Some(path);
