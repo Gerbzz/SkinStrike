@@ -1093,7 +1093,10 @@ impl SkinStrikeApp {
                 ui.horizontal(|ui| {
                     if ui.button("Choose library folder").clicked() { choose = true; }
                     if ui.button("Refresh").clicked() { refresh = true; }
-                    if let Some(root) = &self.library_root { ui.small(root.display().to_string()); }
+                    if let Some(root) = &self.library_root {
+                        let folder = root.file_name().unwrap_or_default().to_string_lossy();
+                        ui.small(format!("Library: {folder}")).on_hover_text(root.display().to_string());
+                    }
                 });
                 if let Some(error) = &self.error { ui.colored_label(Color32::from_rgb(255, 140, 130), error); }
                 let Some(_) = &self.library_root else {
@@ -1150,7 +1153,9 @@ impl SkinStrikeApp {
                                 let card = &page.cards[index];
                                 egui::Frame::group(columns[column].style()).show(&mut columns[column], |ui| {
                                     if let Some(texture) = self.gallery_textures.get(index).and_then(|t| t.as_ref()) {
-                                        ui.image((texture.id(), egui::vec2(210.0, 135.0)));
+                                        let [width, height] = texture.size();
+                                        let scale = (210.0 / width as f32).min(135.0 / height as f32);
+                                        ui.image((texture.id(), egui::vec2(width as f32 * scale, height as f32 * scale)));
                                     } else { ui.allocate_space(egui::vec2(210.0, 135.0)); }
                                     ui.label(RichText::new(&card.title).strong());
                                     ui.small(&card.collection);
@@ -1971,7 +1976,8 @@ impl eframe::App for SkinStrikeApp {
 
 #[cfg(test)]
 mod tests {
-    use super::SkinStrikeApp;
+    use super::{Pending, SkinStrikeApp};
+    use crate::project_library::ProjectLibrary;
     use image::{Rgba, RgbaImage};
 
     #[test]
@@ -2038,6 +2044,41 @@ mod tests {
         app.finish_stroke();
         assert_eq!(app.document.as_ref().unwrap().state(), before);
         assert!(app.error.as_ref().unwrap().contains("Unlock"));
+    }
+
+    #[test]
+    fn saved_library_card_reopens_and_dirty_navigation_waits_for_a_decision() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = dir.path().join("base.png");
+        RgbaImage::from_pixel(16, 16, Rgba([20, 30, 40, 255]))
+            .save(&base)
+            .unwrap();
+        let library = ProjectLibrary::create(&dir.path().join("Library")).unwrap();
+        library.create_collection("Studies").unwrap();
+        let mut app = SkinStrikeApp::default();
+        app.open_texture(&base).unwrap();
+        app.add_paint().unwrap();
+        app.paint_layer = app.selected;
+        app.paint_points = vec![[8.5, 8.5]];
+        app.finish_stroke();
+        let path = library
+            .save_project("Studies", "First finish", app.document.as_ref().unwrap())
+            .unwrap();
+        app.open_project(&path).unwrap();
+        assert!(!app.dirty());
+        app.add_color().unwrap();
+        let before = app.document.as_ref().unwrap().state();
+        app.library_target = Some(path);
+        app.request(Pending::LibraryOpen);
+        assert!(matches!(app.pending, Some(Pending::LibraryOpen)));
+        assert_eq!(app.document.as_ref().unwrap().state(), before);
+        let broken = library
+            .root()
+            .join("Studies")
+            .join("Broken.skinstrike.json");
+        std::fs::write(&broken, b"{broken").unwrap();
+        assert!(app.open_project(&broken).is_err());
+        assert_eq!(app.document.as_ref().unwrap().state(), before);
     }
 }
 

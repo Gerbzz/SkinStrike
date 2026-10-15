@@ -3,6 +3,12 @@ name: SkinStrike creator draft verification
 on:
   push:
     branches: [feature/project-library-2026-10-15]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/creator-draft.yml'
 
 permissions:
   contents: read
