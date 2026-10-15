@@ -256,6 +256,25 @@ impl SkinStrikeApp {
         }
     }
 
+    fn current_project_title(&self) -> String {
+        let filename = self
+            .project_path
+            .as_ref()
+            .and_then(|p| p.file_name())
+            .and_then(|name| name.to_str())
+            .unwrap_or("Untitled finish");
+        let stem = filename
+            .strip_suffix(".skinstrike.json")
+            .or_else(|| filename.strip_suffix(".json"))
+            .unwrap_or(filename);
+        stem.rsplit_once(" -- ")
+            .and_then(|(title, id)| {
+                (id.len() == 16 && id.chars().all(|c| c.is_ascii_hexdigit())).then_some(title)
+            })
+            .unwrap_or(stem)
+            .to_string()
+    }
+
     fn install_prepared(
         &mut self,
         document: FinishDocument,
@@ -1124,9 +1143,7 @@ impl SkinStrikeApp {
                     }
                     ui.separator();
                     if self.document.is_some() && ui.button("Save current finish to collection").clicked() {
-                        self.library_title = self.project_path.as_ref().and_then(|p| p.file_name())
-                            .and_then(|n| n.to_str()).unwrap_or("Untitled finish")
-                            .trim_end_matches(".skinstrike.json").to_string();
+                        self.library_title = self.current_project_title();
                         self.library_save_collection = self.gallery_collection.clone()
                             .or_else(|| self.gallery_collections.first().cloned()).unwrap_or_default();
                         self.save_to_library = true;
@@ -1149,6 +1166,12 @@ impl SkinStrikeApp {
                 }
                 ui.separator();
                 if self.gallery_job.is_some() || self.gallery_dirty_at.is_some() { ui.label("Loading your projects..."); }
+                if let Some(job) = &self.io_job {
+                    ui.horizontal(|ui| {
+                        ui.label(&self.status);
+                        if ui.button("Cancel file work").clicked() { job.cancel.store(true, Ordering::Relaxed); }
+                    });
+                }
                 if let Some(page) = &self.gallery_page {
                     ui.small(format!("{} projects", page.total));
                     if page.cards.is_empty() && self.gallery_job.is_none() { ui.label("No projects here yet. Save a finish into a collection to see its real cover."); }
@@ -1285,14 +1308,7 @@ impl SkinStrikeApp {
                     )
                     .clicked()
                 {
-                    self.library_title = self
-                        .project_path
-                        .as_ref()
-                        .and_then(|p| p.file_name())
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("Untitled finish")
-                        .trim_end_matches(".skinstrike.json")
-                        .to_string();
+                    self.library_title = self.current_project_title();
                     self.library_save_collection = self
                         .gallery_collection
                         .clone()
@@ -1322,16 +1338,7 @@ impl SkinStrikeApp {
             });
             ui.add_space(5.0);
             ui.horizontal(|ui| {
-                let title = self
-                    .project_path
-                    .as_ref()
-                    .map(|p| {
-                        p.file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .into_owned()
-                    })
-                    .unwrap_or_else(|| "Untitled finish".into());
+                let title = self.current_project_title();
                 ui.label(
                     RichText::new(format!(
                         "{}{}",
@@ -2052,6 +2059,7 @@ mod tests {
         assert_eq!(app.document.as_ref().unwrap().state(), before);
         app.open_project(&path).unwrap();
         assert!(!app.dirty());
+        assert_eq!(app.current_project_title(), "First finish");
     }
 
     #[test]
