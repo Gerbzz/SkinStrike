@@ -4,6 +4,9 @@ use crate::document::{
     prepare_render_cache, render_document_cached, save_document, save_document_with_cancel,
     validate_export_destination_quick,
 };
+use crate::project_library::{
+    GalleryPage, ProjectLibrary, read_library_preference, write_library_preference,
+};
 use eframe::egui::{self, Color32, ColorImage, RichText, TextureHandle, TextureOptions};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -52,6 +55,7 @@ enum Tool {
 enum Pending {
     New,
     Open,
+    LibraryOpen,
     Close,
 }
 #[derive(Clone, Copy)]
@@ -74,6 +78,7 @@ enum IoRequest {
     Import(PathBuf),
     ImportAux(PathBuf, AuxKind),
     Save(PathBuf),
+    SaveToLibrary(PathBuf, String, String),
 }
 
 enum IoOutput {
@@ -113,6 +118,10 @@ struct PreviewJob {
     cancel: Arc<AtomicBool>,
     preview_revision: u64,
 }
+struct GalleryJob {
+    receiver: Receiver<Result<(Vec<String>, GalleryPage), String>>,
+    generation: u64,
+}
 pub struct SkinStrikeApp {
     document: Option<FinishDocument>,
     cache: Option<RenderCache>,
@@ -126,6 +135,7 @@ pub struct SkinStrikeApp {
     undo: Vec<DocumentState>,
     drag_before: Option<DocumentState>,
     paint_points: Vec<[f32; 2]>,
+    paint_layer: Option<usize>,
     brush_color: [u8; 3],
     brush_radius: f32,
     redo: Vec<DocumentState>,
@@ -144,10 +154,37 @@ pub struct SkinStrikeApp {
     export_revision: Option<u64>,
     status: String,
     error: Option<String>,
+    library_root: Option<PathBuf>,
+    gallery_open: bool,
+    gallery_job: Option<GalleryJob>,
+    gallery_page: Option<GalleryPage>,
+    gallery_textures: Vec<Option<TextureHandle>>,
+    gallery_collections: Vec<String>,
+    gallery_collection: Option<String>,
+    gallery_query: String,
+    gallery_offset: usize,
+    gallery_generation: u64,
+    gallery_dirty_at: Option<Instant>,
+    library_target: Option<PathBuf>,
+    new_collection: String,
+    save_to_library: bool,
+    library_title: String,
+    library_save_collection: String,
+    logo_texture: Option<TextureHandle>,
+}
+
+fn preference_path() -> Option<PathBuf> {
+    std::env::var_os("LOCALAPPDATA").map(|root| {
+        PathBuf::from(root)
+            .join("SkinStrike")
+            .join("library-root.txt")
+    })
 }
 
 impl Default for SkinStrikeApp {
     fn default() -> Self {
+        let library_root =
+            preference_path().and_then(|path| read_library_preference(&path).ok().flatten());
         Self {
             document: None,
             cache: None,
@@ -161,6 +198,7 @@ impl Default for SkinStrikeApp {
             undo: Vec::new(),
             drag_before: None,
             paint_points: Vec::new(),
+            paint_layer: None,
             brush_color: [240, 123, 54],
             brush_radius: 12.0,
             redo: Vec::new(),
@@ -179,6 +217,23 @@ impl Default for SkinStrikeApp {
             export_revision: None,
             status: "Open a base PNG or a SkinStrike project to begin.".into(),
             error: None,
+            library_root,
+            gallery_open: true,
+            gallery_job: None,
+            gallery_page: None,
+            gallery_textures: Vec::new(),
+            gallery_collections: Vec::new(),
+            gallery_collection: None,
+            gallery_query: String::new(),
+            gallery_offset: 0,
+            gallery_generation: 0,
+            gallery_dirty_at: Some(Instant::now()),
+            library_target: None,
+            new_collection: String::new(),
+            save_to_library: false,
+            library_title: String::new(),
+            library_save_collection: String::new(),
+            logo_texture: None,
         }
     }
 }
@@ -207,12 +262,14 @@ impl SkinStrikeApp {
         self.saved_state = path.as_ref().map(|_| document.state());
         self.project_path = path;
         self.document = Some(document);
+        self.gallery_open = false;
         self.texture = None;
         self.cache = Some(cache);
         self.selected = None;
         self.undo.clear();
         self.drag_before = None;
         self.paint_points.clear();
+        self.paint_layer = None;
         self.redo.clear();
         self.zoom = 1.0;
         self.pan = egui::Vec2::ZERO;
@@ -331,10 +388,11 @@ impl SkinStrikeApp {
             return;
         }
         let points = std::mem::take(&mut self.paint_points);
+        let stroke_layer = self.paint_layer.take();
         let Some(doc) = self.document.as_mut() else {
             return;
         };
-        let Some(index) = self.selected else {
+        let Some(index) = stroke_layer.filter(|layer| Some(*layer) == self.selected) else {
             return;
         };
         let before = doc.state();
@@ -416,6 +474,7 @@ impl SkinStrikeApp {
             IoRequest::ImportAux(_, AuxKind::Alpha) => "Importing alpha data...".into(),
             IoRequest::ImportAux(_, AuxKind::UvReference) => "Importing UV reference...".into(),
             IoRequest::Save(_) => "Saving project...".into(),
+            IoRequest::SaveToLibrary(_, _, _) => "Saving project to collection...".into(),
         };
         self.error = None;
         std::thread::spawn(move || {
@@ -518,6 +577,23 @@ impl SkinStrikeApp {
                         let current = document.ok_or("Nothing to save")?;
                         let state = current.state();
                         save_document_with_cancel(&current, &path, path.exists(), &cancelled)?;
+                        Ok(IoOutput::Saved {
+                            path,
+                            state,
+                            project_id: current.project_id,
+                        })
+                    }
+                    IoRequest::SaveToLibrary(root, collection, title) => {
+                        let current = document.ok_or("Nothing to save")?;
+                        if cancelled() {
+                            return Err("Operation cancelled".into());
+                        }
+                        let state = current.state();
+                        let path = ProjectLibrary::open(&root)?.save_project(
+                            &collection,
+                            &title,
+                            &current,
+                        )?;
                         Ok(IoOutput::Saved {
                             path,
                             state,
@@ -645,6 +721,7 @@ impl SkinStrikeApp {
                         format!("Saved portable project: {}", path.display())
                     };
                     self.error = None;
+                    self.schedule_gallery_refresh();
                     if let Some(action) = self.continue_after_save.take() {
                         if self.dirty() {
                             self.pending = Some(action);
@@ -685,6 +762,7 @@ impl SkinStrikeApp {
                 .add_filter("SkinStrike project", &["json"])
                 .pick_file()
                 .map(IoRequest::Open),
+            Pending::LibraryOpen => self.library_target.take().map(IoRequest::Open),
             Pending::Close => None,
         };
         if let Some(request) = request {
@@ -862,6 +940,231 @@ impl SkinStrikeApp {
         });
         ctx.request_repaint_after(Duration::from_millis(40));
     }
+    fn schedule_gallery_refresh(&mut self) {
+        self.gallery_generation = self.gallery_generation.wrapping_add(1);
+        self.gallery_dirty_at = Some(Instant::now());
+    }
+
+    fn choose_library(&mut self) {
+        let Some(root) = rfd::FileDialog::new().pick_folder() else {
+            return;
+        };
+        match ProjectLibrary::open(&root) {
+            Ok(library) => {
+                if let Some(config) = preference_path() {
+                    if let Err(error) = write_library_preference(&config, library.root()) {
+                        self.error = Some(error);
+                        return;
+                    }
+                }
+                self.library_root = Some(library.root().to_path_buf());
+                self.gallery_collection = None;
+                self.gallery_offset = 0;
+                self.gallery_page = None;
+                self.schedule_gallery_refresh();
+                self.error = None;
+            }
+            Err(error) => self.error = Some(error),
+        }
+    }
+
+    fn update_gallery(&mut self, ctx: &egui::Context) {
+        if let Some(job) = self.gallery_job.as_ref() {
+            let outcome = match job.receiver.try_recv() {
+                Ok(result) => Some(result),
+                Err(mpsc::TryRecvError::Empty) => {
+                    ctx.request_repaint_after(Duration::from_millis(60));
+                    None
+                }
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    Some(Err("Library scan stopped unexpectedly".into()))
+                }
+            };
+            if let Some(outcome) = outcome {
+                let job = self.gallery_job.take().unwrap();
+                if job.generation == self.gallery_generation {
+                    match outcome {
+                        Ok((collections, page)) => {
+                            self.gallery_textures = page
+                                .cards
+                                .iter()
+                                .enumerate()
+                                .map(|(i, card)| {
+                                    card.thumbnail.as_ref().map(|img| {
+                                        ctx.load_texture(
+                                            format!("skin-cover-{}-{}", job.generation, i),
+                                            ColorImage::from_rgba_unmultiplied(
+                                                [img.width() as usize, img.height() as usize],
+                                                img.as_raw(),
+                                            ),
+                                            TextureOptions::LINEAR,
+                                        )
+                                    })
+                                })
+                                .collect();
+                            self.gallery_collections = collections;
+                            self.gallery_page = Some(page);
+                            self.error = None;
+                        }
+                        Err(error) => self.error = Some(error),
+                    }
+                }
+            }
+        }
+        if self.gallery_job.is_none()
+            && self
+                .gallery_dirty_at
+                .is_some_and(|at| at.elapsed() >= Duration::from_millis(180))
+        {
+            self.gallery_dirty_at = None;
+            let Some(root) = self.library_root.clone() else {
+                return;
+            };
+            let collection = self.gallery_collection.clone();
+            let query = self.gallery_query.clone();
+            let offset = self.gallery_offset;
+            let generation = self.gallery_generation;
+            let (tx, rx) = mpsc::channel();
+            std::thread::spawn(move || {
+                let outcome = (|| {
+                    let library = ProjectLibrary::open(&root)?;
+                    let collections = library.collections()?;
+                    let page = library.page(collection.as_deref(), &query, offset, 12)?;
+                    Ok((collections, page))
+                })();
+                let _ = tx.send(outcome);
+            });
+            self.gallery_job = Some(GalleryJob {
+                receiver: rx,
+                generation,
+            });
+        }
+    }
+
+    fn gallery(&mut self, ctx: &egui::Context) {
+        if self.logo_texture.is_none() {
+            if let Ok(image) =
+                image::load_from_memory(include_bytes!("../assets/branding/SkinStrike.png"))
+            {
+                let image = image.to_rgba8();
+                self.logo_texture = Some(ctx.load_texture(
+                    "skinstrike-approved-logo",
+                    ColorImage::from_rgba_unmultiplied(
+                        [image.width() as usize, image.height() as usize],
+                        image.as_raw(),
+                    ),
+                    TextureOptions::LINEAR,
+                ));
+            }
+        }
+        let mut open_path = None;
+        let mut choose = false;
+        let mut refresh = false;
+        egui::CentralPanel::default().show(ctx, |ui| {
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.add_space(20.0);
+                ui.horizontal(|ui| {
+                    if let Some(logo) = &self.logo_texture { ui.image((logo.id(), egui::vec2(92.0, 92.0))); }
+                    ui.vertical(|ui| {
+                        ui.heading(RichText::new("SkinStrike").size(30.0).strong());
+                        ui.label("Your finishes, organized by collection");
+                        ui.small("A PWDS Strike app");
+                    });
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if self.document.is_some() && ui.button("Return to editor").clicked() { self.gallery_open = false; }
+                        if ui.button("New from PNG").clicked() { self.request(Pending::New); }
+                    });
+                });
+                ui.add_space(20.0);
+                ui.horizontal(|ui| {
+                    if ui.button("Choose library folder").clicked() { choose = true; }
+                    if ui.button("Refresh").clicked() { refresh = true; }
+                    if let Some(root) = &self.library_root { ui.small(root.display().to_string()); }
+                });
+                if let Some(error) = &self.error { ui.colored_label(Color32::from_rgb(255, 140, 130), error); }
+                let Some(_) = &self.library_root else {
+                    ui.add_space(40.0);
+                    ui.heading("Choose a local folder to start your library");
+                    ui.label("Collections and portable project files stay in the folder you select.");
+                    return;
+                };
+                ui.add_space(16.0);
+                ui.horizontal(|ui| {
+                    ui.label("New collection");
+                    ui.add(egui::TextEdit::singleline(&mut self.new_collection).desired_width(170.0).hint_text("Collection name"));
+                    if ui.button("Create").clicked() {
+                        if let Some(root) = &self.library_root {
+                            match ProjectLibrary::open(root).and_then(|library| library.create_collection(&self.new_collection)) {
+                                Ok(_) => { self.new_collection.clear(); refresh = true; self.error = None; },
+                                Err(error) => self.error = Some(error),
+                            }
+                        }
+                    }
+                    ui.separator();
+                    if self.document.is_some() && ui.button("Save current finish to collection").clicked() {
+                        self.save_to_library = true;
+                    }
+                });
+                ui.add_space(12.0);
+                ui.horizontal(|ui| {
+                    if ui.selectable_label(self.gallery_collection.is_none(), "All projects").clicked() {
+                        self.gallery_collection = None; self.gallery_offset = 0; refresh = true;
+                    }
+                    for name in &self.gallery_collections {
+                        if ui.selectable_label(self.gallery_collection.as_ref() == Some(name), name).clicked() {
+                            self.gallery_collection = Some(name.clone()); self.gallery_offset = 0; refresh = true;
+                        }
+                    }
+                });
+                ui.add_space(8.0);
+                if ui.add(egui::TextEdit::singleline(&mut self.gallery_query).hint_text("Search project titles")).changed() {
+                    self.gallery_offset = 0; refresh = true;
+                }
+                ui.separator();
+                if self.gallery_job.is_some() || self.gallery_dirty_at.is_some() { ui.label("Loading your projects..."); }
+                if let Some(page) = &self.gallery_page {
+                    ui.small(format!("{} projects", page.total));
+                    if page.cards.is_empty() && self.gallery_job.is_none() { ui.label("No projects here yet. Save a finish into a collection to see its real cover."); }
+                    for row in (0..page.cards.len()).step_by(4) {
+                        ui.columns(4, |columns| {
+                            for (column, index) in (row..(row+4).min(page.cards.len())).enumerate() {
+                                let card = &page.cards[index];
+                                egui::Frame::group(columns[column].style()).show(&mut columns[column], |ui| {
+                                    if let Some(texture) = self.gallery_textures.get(index).and_then(|t| t.as_ref()) {
+                                        ui.image((texture.id(), egui::vec2(210.0, 135.0)));
+                                    } else { ui.allocate_space(egui::vec2(210.0, 135.0)); }
+                                    ui.label(RichText::new(&card.title).strong());
+                                    ui.small(&card.collection);
+                                    if let Some(error) = &card.error { ui.colored_label(Color32::LIGHT_RED, format!("Cannot preview: {error}")); }
+                                    else if ui.button("Open in editor").clicked() { open_path = Some(card.path.clone()); }
+                                });
+                            }
+                        });
+                        ui.add_space(8.0);
+                    }
+                    ui.horizontal(|ui| {
+                        if ui.add_enabled(self.gallery_offset > 0, egui::Button::new("Previous")).clicked() {
+                            self.gallery_offset = self.gallery_offset.saturating_sub(12); refresh = true;
+                        }
+                        ui.label(format!("Page {}", self.gallery_offset / 12 + 1));
+                        if ui.add_enabled(self.gallery_offset + 12 < page.total, egui::Button::new("Next")).clicked() {
+                            self.gallery_offset += 12; refresh = true;
+                        }
+                    });
+                }
+            });
+        });
+        if choose {
+            self.choose_library();
+        }
+        if refresh {
+            self.schedule_gallery_refresh();
+        }
+        if let Some(path) = open_path {
+            self.library_target = Some(path);
+            self.request(Pending::LibraryOpen);
+        }
+    }
     fn shortcuts(&mut self, ctx: &egui::Context) {
         let (save, open, new, undo, redo, zoom_in, zoom_out, fit) = ctx.input(|i| {
             (
@@ -909,6 +1212,11 @@ impl SkinStrikeApp {
         egui::TopBottomPanel::top("top").show(ctx, |ui| {
             ui.add_space(7.0);
             ui.horizontal(|ui| {
+                if ui.button("Projects").clicked() {
+                    self.gallery_open = true;
+                    self.schedule_gallery_refresh();
+                }
+                ui.separator();
                 ui.label(RichText::new("Editor").strong().size(17.0));
                 ui.separator();
                 if ui.button("New from PNG").on_hover_text("Ctrl+N").clicked() {
@@ -934,6 +1242,28 @@ impl SkinStrikeApp {
                     if let Err(e) = self.save(true) {
                         self.error = Some(e);
                     }
+                }
+                if ui
+                    .add_enabled(
+                        self.document.is_some() && self.library_root.is_some(),
+                        egui::Button::new("Save to collection"),
+                    )
+                    .clicked()
+                {
+                    self.library_title = self
+                        .project_path
+                        .as_ref()
+                        .and_then(|p| p.file_name())
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("Untitled finish")
+                        .trim_end_matches(".skinstrike.json")
+                        .to_string();
+                    self.library_save_collection = self
+                        .gallery_collection
+                        .clone()
+                        .or_else(|| self.gallery_collections.first().cloned())
+                        .unwrap_or_default();
+                    self.save_to_library = true;
                 }
                 if ui
                     .add_enabled(self.document.is_some(), egui::Button::new("Export PNG"))
@@ -1325,6 +1655,10 @@ impl SkinStrikeApp {
                 }
             }
             let pan_drag = self.tool == Tool::Pan || response.dragged_by(egui::PointerButton::Middle);
+            if self.tool != Tool::Brush || (self.paint_layer.is_some() && self.paint_layer != self.selected) {
+                self.paint_points.clear();
+                self.paint_layer = None;
+            }
             let origin = area.center() - egui::vec2(width as f32 * scale, height as f32 * scale) / 2.0 + self.pan;
             let image_rect = egui::Rect::from_min_size(origin, egui::vec2(width as f32 * scale, height as f32 * scale));
             if self.tool == Tool::Brush && !pan_drag {
@@ -1333,6 +1667,7 @@ impl SkinStrikeApp {
                 if paintable && (response.drag_started() || response.dragged() || response.clicked()) {
                     if let Some(pointer) = ctx.input(|i| i.pointer.interact_pos()) {
                         if image_rect.contains(pointer) || !self.paint_points.is_empty() {
+                            if self.paint_points.is_empty() { self.paint_layer = self.selected; }
                             let point = [((pointer.x-origin.x)/scale).clamp(0.0, width as f32 - 0.01),
                                          ((pointer.y-origin.y)/scale).clamp(0.0, height as f32 - 0.01)];
                             if self.paint_points.last().is_none_or(|p| (p[0]-point[0]).abs()+(p[1]-point[1]).abs() > 0.3)
@@ -1370,14 +1705,6 @@ impl SkinStrikeApp {
             if response.drag_stopped() {
                 if let Some(before) = self.drag_before.take() { self.commit(before); }
             }
-            if self.paint_points.len() > 1 {
-                let stroke = egui::Stroke::new((self.brush_radius*scale*2.0).clamp(1.0, 128.0), Color32::from_rgb(self.brush_color[0], self.brush_color[1], self.brush_color[2]));
-                for pair in self.paint_points.windows(2) {
-                    let a = origin + egui::vec2(pair[0][0]*scale, pair[0][1]*scale);
-                    let b = origin + egui::vec2(pair[1][0]*scale, pair[1][1]*scale);
-                    painter.line_segment([a,b], stroke);
-                }
-            }
             let clip = image_rect.intersect(area);
             if clip.is_positive() {
                 let tile = 18.0;
@@ -1414,6 +1741,20 @@ impl SkinStrikeApp {
                         painter.rect_filled(badge, 0.0, Color32::from_rgba_unmultiplied(13, 20, 30, 220));
                         painter.text(badge.min + egui::vec2(8.0, 12.0), egui::Align2::LEFT_CENTER,
                             "UV GUIDE | PREVIEW ONLY", egui::FontId::proportional(12.0), Color32::LIGHT_BLUE);
+                    }
+                }
+                if !self.paint_points.is_empty() {
+                    let stroke = egui::Stroke::new((self.brush_radius*scale*2.0).clamp(1.0, 128.0),
+                        Color32::from_rgb(self.brush_color[0], self.brush_color[1], self.brush_color[2]));
+                    for pair in self.paint_points.windows(2) {
+                        let a = origin + egui::vec2(pair[0][0]*scale, pair[0][1]*scale);
+                        let b = origin + egui::vec2(pair[1][0]*scale, pair[1][1]*scale);
+                        painter.line_segment([a,b], stroke);
+                    }
+                    if self.paint_points.len() == 1 {
+                        let p = self.paint_points[0];
+                        painter.circle_filled(origin + egui::vec2(p[0]*scale, p[1]*scale),
+                            (self.brush_radius*scale).max(0.5), stroke.color);
                     }
                 }
                 painter.rect_stroke(image_rect, 0.0, egui::Stroke::new(1.0_f32, Color32::from_rgb(99, 121, 146)));
@@ -1489,6 +1830,47 @@ impl SkinStrikeApp {
     }
 
     fn dialogs(&mut self, ctx: &egui::Context) {
+        if self.save_to_library {
+            egui::Window::new("Save finish to collection")
+                .collapsible(false)
+                .resizable(false)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .show(ctx, |ui| {
+                    if self.gallery_collections.is_empty() {
+                        ui.label("Create a collection on the Projects screen first.");
+                    } else {
+                        ui.label("Project title");
+                        ui.text_edit_singleline(&mut self.library_title);
+                        egui::ComboBox::from_label("Collection")
+                            .selected_text(&self.library_save_collection)
+                            .show_ui(ui, |ui| {
+                                for name in &self.gallery_collections {
+                                    ui.selectable_value(
+                                        &mut self.library_save_collection,
+                                        name.clone(),
+                                        name,
+                                    );
+                                }
+                            });
+                        if ui.button("Save project").clicked() {
+                            if let Some(root) = &self.library_root {
+                                let request = IoRequest::SaveToLibrary(
+                                    root.clone(),
+                                    self.library_save_collection.clone(),
+                                    self.library_title.clone(),
+                                );
+                                match self.start_io(request) {
+                                    Ok(()) => self.save_to_library = false,
+                                    Err(error) => self.error = Some(error),
+                                }
+                            }
+                        }
+                    }
+                    if ui.button("Cancel").clicked() {
+                        self.save_to_library = false;
+                    }
+                });
+        }
         if let Some(pending) = self.pending {
             egui::Window::new("Unsaved changes").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
                 ui.label("This project has unsaved edits. Save it before leaving, or discard those edits.");
@@ -1554,11 +1936,16 @@ impl eframe::App for SkinStrikeApp {
         self.poll_export(ctx);
         self.poll_preview(ctx);
         self.update_preview(ctx);
-        self.top_bar(ctx);
-        self.footer(ctx);
-        self.left_bar(ctx);
-        self.right_bar(ctx);
-        self.canvas(ctx);
+        self.update_gallery(ctx);
+        if self.gallery_open {
+            self.gallery(ctx);
+        } else {
+            self.top_bar(ctx);
+            self.footer(ctx);
+            self.left_bar(ctx);
+            self.right_bar(ctx);
+            self.canvas(ctx);
+        }
         self.dialogs(ctx);
     }
 }
@@ -1596,6 +1983,42 @@ mod tests {
         assert_eq!(app.document.as_ref().unwrap().state(), before);
         app.open_project(&path).unwrap();
         assert!(!app.dirty());
+    }
+
+    #[test]
+    fn brush_gesture_is_one_undoable_edit_and_locked_layer_keeps_work() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = dir.path().join("base.png");
+        RgbaImage::from_pixel(16, 16, Rgba([15, 25, 35, 255]))
+            .save(&base)
+            .unwrap();
+        let mut app = SkinStrikeApp::default();
+        app.open_texture(&base).unwrap();
+        app.add_paint().unwrap();
+        app.brush_radius = 2.0;
+        app.paint_layer = app.selected;
+        app.paint_points = vec![[3.5, 3.5], [9.5, 9.5]];
+        app.finish_stroke();
+        let doc = app.document.as_ref().unwrap();
+        let crate::document::LayerContent::Paint { strokes } = &doc.layers[0].content else {
+            panic!("paint layer expected")
+        };
+        assert_eq!(strokes.len(), 1);
+        app.undo();
+        let crate::document::LayerContent::Paint { strokes } =
+            &app.document.as_ref().unwrap().layers[0].content
+        else {
+            panic!("paint layer expected")
+        };
+        assert!(strokes.is_empty());
+        app.redo();
+        app.document.as_mut().unwrap().layers[0].locked = true;
+        let before = app.document.as_ref().unwrap().state();
+        app.paint_layer = app.selected;
+        app.paint_points = vec![[5.5, 5.5]];
+        app.finish_stroke();
+        assert_eq!(app.document.as_ref().unwrap().state(), before);
+        assert!(app.error.as_ref().unwrap().contains("Unlock"));
     }
 }
 

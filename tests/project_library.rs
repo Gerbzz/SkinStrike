@@ -1,6 +1,7 @@
 use image::{Rgba, RgbaImage};
 use skinstrike::document::{PaintStroke, load_document, new_document};
 use skinstrike::project_library::ProjectLibrary;
+use skinstrike::project_library::{read_library_preference, write_library_preference};
 
 #[test]
 fn collection_project_and_painted_cover_persist_across_library_reopen() {
@@ -96,4 +97,21 @@ fn invalid_folders_and_corrupt_projects_have_explicit_errors() {
     assert_eq!(page.total, 1);
     assert!(page.cards[0].error.is_some());
     assert!(page.cards[0].thumbnail.is_none());
+}
+
+#[test]
+fn library_folder_choice_survives_restart_and_missing_folder_is_reported() {
+    let temp = tempfile::TempDir::new().unwrap();
+    let root = temp.path().join("library");
+    let config = temp.path().join("settings").join("library-root.txt");
+    assert_eq!(read_library_preference(&config).unwrap(), None);
+    let library = ProjectLibrary::create(&root).unwrap();
+    write_library_preference(&config, library.root()).unwrap();
+    let chosen = read_library_preference(&config).unwrap().unwrap();
+    assert_eq!(
+        ProjectLibrary::open(&chosen).unwrap().root(),
+        library.root()
+    );
+    std::fs::remove_dir(&root).unwrap();
+    assert!(ProjectLibrary::open(&chosen).is_err());
 }

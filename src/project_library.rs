@@ -1,6 +1,7 @@
 //! A local, bounded project index. Covers are rendered from each saved document.
 use crate::document::{FinishDocument, load_document, render_document, save_document};
 use image::RgbaImage;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 const SUFFIX: &str = ".skinstrike.json";
@@ -208,4 +209,42 @@ fn safe_name(input: &str) -> Result<&str, String> {
         return Err("That name is reserved by Windows".into());
     }
     Ok(name)
+}
+
+/// Persist the selected local folder outside the project library itself.
+pub fn write_library_preference(config: &Path, root: &Path) -> Result<(), String> {
+    let parent = config.parent().ok_or("Settings folder is missing")?;
+    std::fs::create_dir_all(parent).map_err(|e| format!("Cannot create settings folder: {e}"))?;
+    let canonical = root
+        .canonicalize()
+        .map_err(|e| format!("Library folder is missing: {e}"))?;
+    if !canonical.is_dir() {
+        return Err("Library folder is missing".into());
+    }
+    let mut pending = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
+    pending
+        .write_all(canonical.to_string_lossy().as_bytes())
+        .map_err(|e| e.to_string())?;
+    pending
+        .flush()
+        .and_then(|_| pending.as_file().sync_all())
+        .map_err(|e| e.to_string())?;
+    pending.persist(config).map_err(|e| e.error.to_string())?;
+    Ok(())
+}
+
+pub fn read_library_preference(config: &Path) -> Result<Option<PathBuf>, String> {
+    if !config.exists() {
+        return Ok(None);
+    }
+    let bytes = std::fs::read(config).map_err(|e| e.to_string())?;
+    if bytes.len() > 4096 {
+        return Err("Library setting is too long".into());
+    }
+    let value = String::from_utf8(bytes).map_err(|e| e.to_string())?;
+    let path = PathBuf::from(value);
+    if !path.is_absolute() {
+        return Err("Library setting must be an absolute folder".into());
+    }
+    Ok(Some(path))
 }
