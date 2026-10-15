@@ -1161,6 +1161,89 @@ pub fn export_png_with_cache(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod hand_paint_tests {
+    use super::*;
+
+    #[test]
+    fn painted_stroke_round_trips_and_changes_real_preview_and_export_pixels() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = dir.path().join("base.png");
+        RgbaImage::from_pixel(16, 16, Rgba([10, 20, 30, 255]))
+            .save(&base)
+            .unwrap();
+        let project = dir.path().join("hand-painted.skinstrike.json");
+        let mut document = new_document(&base, &project).unwrap();
+        let layer = document.add_paint_layer("Hand paint").unwrap();
+        let before = document.state();
+        document
+            .add_paint_stroke(
+                layer,
+                PaintStroke {
+                    rgb: [230, 40, 20],
+                    radius: 2.0,
+                    points: vec![[7.5, 8.5], [8.5, 8.5]],
+                },
+            )
+            .unwrap();
+
+        let full = render_document(&document, None).unwrap();
+        let preview = render_document(&document, Some(8)).unwrap();
+        assert_eq!(full.get_pixel(8, 8).0, [230, 40, 20, 255]);
+        assert_eq!(full.get_pixel(0, 0).0, [10, 20, 30, 255]);
+        assert_eq!(preview.get_pixel(4, 4).0[..3], [230, 40, 20]);
+
+        save_document(&document, &project, false).unwrap();
+        let reopened = load_document(&project).unwrap();
+        assert_eq!(render_document(&reopened, None).unwrap(), full);
+        document.restore(before);
+        assert_eq!(
+            render_document(&document, None).unwrap().get_pixel(8, 8).0,
+            [10, 20, 30, 255]
+        );
+    }
+
+    #[test]
+    fn bad_or_locked_paint_strokes_leave_the_project_unchanged() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = dir.path().join("base.png");
+        RgbaImage::from_pixel(8, 8, Rgba([0, 0, 0, 255]))
+            .save(&base)
+            .unwrap();
+        let mut document = new_document(&base, &dir.path().join("finish.json")).unwrap();
+        let layer = document.add_paint_layer("Paint").unwrap();
+        let original = document.state();
+        assert!(
+            document
+                .add_paint_stroke(
+                    layer,
+                    PaintStroke {
+                        rgb: [255, 0, 0],
+                        radius: f32::NAN,
+                        points: vec![[2.0, 2.0]],
+                    }
+                )
+                .is_err()
+        );
+        assert_eq!(document.state(), original);
+        document.layers[layer].locked = true;
+        let locked = document.state();
+        assert!(
+            document
+                .add_paint_stroke(
+                    layer,
+                    PaintStroke {
+                        rgb: [255, 0, 0],
+                        radius: 2.0,
+                        points: vec![[2.0, 2.0]],
+                    }
+                )
+                .is_err()
+        );
+        assert_eq!(document.state(), locked);
+    }
+}
 #[cfg(test)]
 mod authoring_tests {
     use super::*;

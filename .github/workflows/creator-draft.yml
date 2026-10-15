@@ -1,0 +1,47 @@
+name: SkinStrike creator draft verification
+
+on:
+  push:
+    branches: [feature/project-library-2026-10-15]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select stable Rust
+        shell: pwsh
+        run: rustup default stable
+      - name: Test project and rendering logic
+        shell: pwsh
+        run: cargo test --locked --lib
+      - name: Test native editor logic
+        shell: pwsh
+        run: cargo test --locked --features native-ui --lib
+      - name: Build native editor
+        shell: pwsh
+        run: cargo build --locked --features native-ui --bin skinstrike-ui
+      - name: Bound and hash executable
+        shell: pwsh
+        run: |
+          $exe = Get-Item target/debug/skinstrike-ui.exe
+          if ($exe.Length -gt 120MB) { throw "Debug executable exceeds 120 MiB cap: $($exe.Length)" }
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          $sha = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
+          "$sha  skinstrike-ui.exe" | Set-Content artifact/SHA256.txt -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skinstrike-creator-draft
+          path: |
+            target/debug/skinstrike-ui.exe
+            artifact/SHA256.txt
+          if-no-files-found: error
+          retention-days: 1
