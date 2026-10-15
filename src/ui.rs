@@ -293,6 +293,18 @@ impl SkinStrikeApp {
         self.install(document, None)
     }
 
+    /// Open a chosen library for native review without changing the saved folder preference.
+    pub fn preview_library_at(&mut self, root: &Path) -> Result<(), String> {
+        let library = ProjectLibrary::open(root)?;
+        self.library_root = Some(library.root().to_path_buf());
+        self.gallery_open = true;
+        self.gallery_page = None;
+        self.gallery_collection = None;
+        self.gallery_offset = 0;
+        self.schedule_gallery_refresh();
+        Ok(())
+    }
+
     pub fn open_project(&mut self, path: &Path) -> Result<(), String> {
         let document = load_document(path)?;
         let migrated = std::fs::read(path)
@@ -943,6 +955,8 @@ impl SkinStrikeApp {
     fn schedule_gallery_refresh(&mut self) {
         self.gallery_generation = self.gallery_generation.wrapping_add(1);
         self.gallery_dirty_at = Some(Instant::now());
+        self.gallery_page = None;
+        self.gallery_textures.clear();
     }
 
     fn choose_library(&mut self) {
@@ -1102,6 +1116,11 @@ impl SkinStrikeApp {
                     }
                     ui.separator();
                     if self.document.is_some() && ui.button("Save current finish to collection").clicked() {
+                        self.library_title = self.project_path.as_ref().and_then(|p| p.file_name())
+                            .and_then(|n| n.to_str()).unwrap_or("Untitled finish")
+                            .trim_end_matches(".skinstrike.json").to_string();
+                        self.library_save_collection = self.gallery_collection.clone()
+                            .or_else(|| self.gallery_collections.first().cloned()).unwrap_or_default();
                         self.save_to_library = true;
                     }
                 });

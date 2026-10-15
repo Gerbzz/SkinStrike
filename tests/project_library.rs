@@ -65,6 +65,11 @@ fn collection_project_and_painted_cover_persist_across_library_reopen() {
             .unwrap(),
         saved
     );
+    assert!(
+        library
+            .save_project("Favorites", "Accidental duplicate", &document)
+            .is_err()
+    );
     let updated = reopened.page(Some("Favorites"), "copper", 0, 12).unwrap();
     assert_eq!(updated.total, 1);
     assert_eq!(

@@ -93,16 +93,22 @@ fn main() -> ExitCode {
     let mut args = std::env::args_os().skip(1);
     let capture = match (args.next(), args.next(), args.next(), args.next()) {
         (None, None, None, None) => None,
-        (Some(flag), Some(output), Some(texture), None) if flag == "--capture" => {
+        (Some(flag), Some(output), Some(texture), None)
+            if flag == "--capture"
+                || flag == "--capture-project"
+                || flag == "--capture-library" =>
+        {
             let output = PathBuf::from(output);
             if output.extension().is_none_or(|ext| ext != "png") {
                 eprintln!("Capture path must end in .png");
                 return ExitCode::FAILURE;
             }
-            Some((output, PathBuf::from(texture)))
+            Some((flag, output, PathBuf::from(texture)))
         }
         _ => {
-            eprintln!("Usage: skinstrike-ui [--capture FILE.png TEXTURE.png]");
+            eprintln!(
+                "Usage: skinstrike-ui [--capture FILE.png TEXTURE.png | --capture-project FILE.png PROJECT.json | --capture-library FILE.png FOLDER]"
+            );
             return ExitCode::FAILURE;
         }
     };
@@ -112,9 +118,16 @@ fn main() -> ExitCode {
             .with_min_inner_size([960.0, 620.0]),
         ..Default::default()
     };
-    if let Some((path, texture)) = capture {
+    if let Some((mode, path, source)) = capture {
         let mut inner = SkinStrikeApp::default();
-        if let Err(error) = inner.open_texture(&texture) {
+        let prepared = if mode == "--capture-library" {
+            inner.preview_library_at(&source)
+        } else if mode == "--capture-project" {
+            inner.open_project(&source)
+        } else {
+            inner.open_texture(&source)
+        };
+        if let Err(error) = prepared {
             eprintln!("SkinStrike fixture: {error}");
             return ExitCode::FAILURE;
         }

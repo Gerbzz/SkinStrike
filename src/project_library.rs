@@ -91,6 +91,19 @@ impl ProjectLibrary {
             return Err("Invalid project identity".into());
         }
         let path = folder.join(format!("{} -- {}{}", title, &doc.project_id[..16], SUFFIX));
+        let identity_suffix = format!(" -- {}{}", &doc.project_id[..16], SUFFIX);
+        for entry in std::fs::read_dir(&folder).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            if entry.file_type().map_err(|e| e.to_string())?.is_file()
+                && entry
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(&identity_suffix)
+                && entry.path() != path
+            {
+                return Err("This project already has a file in the collection; use its existing title or save a separate copy".into());
+            }
+        }
         if path
             .symlink_metadata()
             .is_ok_and(|m| m.file_type().is_symlink())
