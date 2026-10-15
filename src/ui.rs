@@ -172,6 +172,7 @@ pub struct SkinStrikeApp {
     library_save_collection: String,
     logo_texture: Option<TextureHandle>,
     show_about: bool,
+    style_ready: bool,
 }
 
 fn preference_path() -> Option<PathBuf> {
@@ -236,6 +237,7 @@ impl Default for SkinStrikeApp {
             library_save_collection: String::new(),
             logo_texture: None,
             show_about: false,
+            style_ready: false,
         }
     }
 }
@@ -1157,9 +1159,11 @@ impl SkinStrikeApp {
                                 egui::Frame::group(columns[column].style()).show(&mut columns[column], |ui| {
                                     if let Some(texture) = self.gallery_textures.get(index).and_then(|t| t.as_ref()) {
                                         let [width, height] = texture.size();
-                                        let scale = (210.0 / width as f32).min(135.0 / height as f32);
-                                        ui.image((texture.id(), egui::vec2(width as f32 * scale, height as f32 * scale)));
-                                    } else { ui.allocate_space(egui::vec2(210.0, 135.0)); }
+                                        let scale = (190.0 / width as f32).min(190.0 / height as f32);
+                                        ui.vertical_centered(|ui| {
+                                            ui.image((texture.id(), egui::vec2(width as f32 * scale, height as f32 * scale)));
+                                        });
+                                    } else { ui.allocate_space(egui::vec2(190.0, 190.0)); }
                                     ui.label(RichText::new(&card.title).strong());
                                     ui.small(&card.collection);
                                     if let Some(error) = &card.error { ui.colored_label(Color32::LIGHT_RED, format!("Cannot preview: {error}")); }
@@ -1960,7 +1964,28 @@ impl SkinStrikeApp {
 
 impl eframe::App for SkinStrikeApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.set_visuals(egui::Visuals::dark());
+        if !self.style_ready {
+            let mut style = (*ctx.style()).clone();
+            style.visuals = egui::Visuals::dark();
+            style.visuals.selection.bg_fill = Color32::from_rgb(126, 69, 43);
+            style.visuals.widgets.active.bg_fill = Color32::from_rgb(126, 69, 43);
+            style.spacing.item_spacing = egui::vec2(8.0, 6.0);
+            style.spacing.button_padding = egui::vec2(9.0, 5.0);
+            style
+                .text_styles
+                .insert(egui::TextStyle::Body, egui::FontId::proportional(14.0));
+            style
+                .text_styles
+                .insert(egui::TextStyle::Button, egui::FontId::proportional(14.0));
+            style
+                .text_styles
+                .insert(egui::TextStyle::Small, egui::FontId::proportional(11.5));
+            style
+                .text_styles
+                .insert(egui::TextStyle::Heading, egui::FontId::proportional(21.0));
+            ctx.set_style(style);
+            self.style_ready = true;
+        }
         if ctx.input(|i| i.viewport().close_requested())
             && (self.io_job.is_some() || self.export_job.is_some())
         {
