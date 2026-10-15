@@ -33,7 +33,7 @@ These [genuine native captures](docs/NATIVE_CREATOR_ACCEPTANCE.md) came from tes
 
 ## Current status
 
-Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have automated coverage. The draft branch adds bounded brush strokes and a local visual project library; its hosted Windows tests pass and its two captured native states were visually inspected. The [acceptance checklist](docs/CREATOR_ACCEPTANCE.md) tracks remaining interaction checks. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
+Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have automated coverage. The draft branch adds bounded brush strokes and a local visual project library; its hosted Windows tests pass and its two captured native states were visually inspected. The [core persistence review](docs/CORE_PERSISTENCE_ACCEPTANCE.md) records exact-binary save, reopen, export, and error checks. The [acceptance checklist](docs/CREATOR_ACCEPTANCE.md) tracks remaining interaction checks. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
 
 ## A finish from source to export
 
