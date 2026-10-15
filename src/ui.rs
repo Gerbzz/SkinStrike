@@ -2125,6 +2125,11 @@ mod tests {
         app.request(Pending::LibraryOpen);
         assert!(matches!(app.pending, Some(Pending::LibraryOpen)));
         assert_eq!(app.document.as_ref().unwrap().state(), before);
+        app.pending = None;
+        app.request(Pending::Close);
+        assert!(matches!(app.pending, Some(Pending::Close)));
+        assert!(!app.allow_close);
+        assert_eq!(app.document.as_ref().unwrap().state(), before);
         let broken = library
             .root()
             .join("Studies")

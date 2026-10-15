@@ -32,22 +32,26 @@ jobs:
       - name: Test native editor logic
         shell: pwsh
         run: cargo test --locked --features native-ui
-      - name: Build native editor
+      - name: Build native editor and project CLI
         shell: pwsh
-        run: cargo build --locked --features native-ui --bin skinstrike-ui
-      - name: Bound and hash executable
+        run: cargo build --locked --features native-ui --bin skinstrike-ui --bin skinstrike
+      - name: Bound and hash executables
         shell: pwsh
         run: |
           $exe = Get-Item target/debug/skinstrike-ui.exe
           if ($exe.Length -gt 120MB) { throw "Debug executable exceeds 120 MiB cap: $($exe.Length)" }
+          $cli = Get-Item target/debug/skinstrike.exe
+          if ($cli.Length -gt 64MB) { throw "CLI executable exceeds 64 MiB cap: $($cli.Length)" }
           New-Item -ItemType Directory -Force artifact | Out-Null
           $sha = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
-          "$sha  skinstrike-ui.exe" | Set-Content artifact/SHA256.txt -Encoding ascii
+          $cliSha = (Get-FileHash $cli.FullName -Algorithm SHA256).Hash
+          @("$sha  skinstrike-ui.exe", "$cliSha  skinstrike.exe") | Set-Content artifact/SHA256.txt -Encoding ascii
       - uses: actions/upload-artifact@v4
         with:
           name: skinstrike-creator-draft
           path: |
             target/debug/skinstrike-ui.exe
+            target/debug/skinstrike.exe
             artifact/SHA256.txt
           if-no-files-found: error
           retention-days: 1

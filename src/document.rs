@@ -1777,6 +1777,7 @@ mod review_regressions {
 mod cancellation_regressions {
     use super::*;
     use image::Rgba;
+    use std::cell::Cell;
 
     #[test]
     fn cancelled_save_leaves_destination_untouched() {
@@ -1797,6 +1798,50 @@ mod cancellation_regressions {
         let original = std::fs::read(&target).unwrap();
         assert!(save_document_with_cancel(&doc, &target, true, &|| true).is_err());
         assert_eq!(std::fs::read(&target).unwrap(), original);
+    }
+
+    #[test]
+    fn cancellation_after_staging_preserves_previous_project_and_repeated_save_is_stable() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = dir.path().join("base.png");
+        RgbaImage::from_pixel(32, 32, Rgba([12, 32, 52, 255]))
+            .save(&base)
+            .unwrap();
+        let target = dir.path().join("finish.skinstrike.json");
+        let mut doc = new_document(&base, &target).unwrap();
+        save_document(&doc, &target, false).unwrap();
+        let previous = std::fs::read(&target).unwrap();
+        let paint = doc.add_paint_layer("Brushwork").unwrap();
+        doc.add_paint_stroke(
+            paint,
+            PaintStroke {
+                rgb: [220, 65, 25],
+                radius: 3.0,
+                points: vec![[16.5, 16.5]],
+            },
+        )
+        .unwrap();
+
+        let calls = Cell::new(0);
+        let cancel_after_stage = || {
+            calls.set(calls.get() + 1);
+            calls.get() == 3
+        };
+        assert!(
+            save_document_with_cancel(&doc, &target, true, &cancel_after_stage)
+                .unwrap_err()
+                .contains("cancelled")
+        );
+        assert_eq!(calls.get(), 3);
+        assert_eq!(std::fs::read(&target).unwrap(), previous);
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 2);
+
+        save_document(&doc, &target, true).unwrap();
+        let updated = std::fs::read(&target).unwrap();
+        assert_ne!(updated, previous);
+        assert_eq!(load_document(&target).unwrap().layers.len(), 1);
+        save_document(&doc, &target, true).unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), updated);
     }
 
     #[test]
