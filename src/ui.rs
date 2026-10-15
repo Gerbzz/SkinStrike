@@ -1,6 +1,6 @@
 use crate::document::{
-    AlphaMode, DocumentState, FinishDocument, FinishStyleIntent, LayerContent, RenderCache,
-    apply_uv_reference_cached, export_png_with_cache, load_document, new_document,
+    AlphaMode, DocumentState, FinishDocument, FinishStyleIntent, LayerContent, PaintStroke,
+    RenderCache, apply_uv_reference_cached, export_png_with_cache, load_document, new_document,
     prepare_render_cache, render_document_cached, save_document, save_document_with_cancel,
     validate_export_destination_quick,
 };
@@ -46,6 +46,7 @@ fn render_preview_image(
 enum Tool {
     Move,
     Pan,
+    Brush,
 }
 #[derive(Clone, Copy)]
 enum Pending {
@@ -124,6 +125,9 @@ pub struct SkinStrikeApp {
     saved_state: Option<DocumentState>,
     undo: Vec<DocumentState>,
     drag_before: Option<DocumentState>,
+    paint_points: Vec<[f32; 2]>,
+    brush_color: [u8; 3],
+    brush_radius: f32,
     redo: Vec<DocumentState>,
     selected: Option<usize>,
     texture: Option<TextureHandle>,
@@ -156,6 +160,9 @@ impl Default for SkinStrikeApp {
             saved_state: None,
             undo: Vec::new(),
             drag_before: None,
+            paint_points: Vec::new(),
+            brush_color: [240, 123, 54],
+            brush_radius: 12.0,
             redo: Vec::new(),
             selected: None,
             texture: None,
@@ -205,6 +212,7 @@ impl SkinStrikeApp {
         self.selected = None;
         self.undo.clear();
         self.drag_before = None;
+        self.paint_points.clear();
         self.redo.clear();
         self.zoom = 1.0;
         self.pan = egui::Vec2::ZERO;
@@ -307,6 +315,38 @@ impl SkinStrikeApp {
         self.selected = Some(doc.layers.len() - 1);
         self.commit(before);
         Ok(())
+    }
+    pub fn add_paint(&mut self) -> Result<(), String> {
+        let doc = self.document.as_mut().ok_or("Open a base PNG first")?;
+        let before = doc.state();
+        let name = doc.unique_layer_name("Brushwork")?;
+        self.selected = Some(doc.add_paint_layer(&name)?);
+        self.tool = Tool::Brush;
+        self.commit(before);
+        Ok(())
+    }
+
+    fn finish_stroke(&mut self) {
+        if self.paint_points.is_empty() {
+            return;
+        }
+        let points = std::mem::take(&mut self.paint_points);
+        let Some(doc) = self.document.as_mut() else {
+            return;
+        };
+        let Some(index) = self.selected else {
+            return;
+        };
+        let before = doc.state();
+        let stroke = PaintStroke {
+            rgb: self.brush_color,
+            radius: self.brush_radius,
+            points,
+        };
+        match doc.add_paint_stroke(index, stroke) {
+            Ok(()) => self.commit(before),
+            Err(error) => self.error = Some(error),
+        }
     }
     pub fn import_artwork(&mut self, path: &Path) -> Result<(), String> {
         let doc = self.document.as_mut().ok_or("Open a base PNG first")?;
@@ -869,12 +909,7 @@ impl SkinStrikeApp {
         egui::TopBottomPanel::top("top").show(ctx, |ui| {
             ui.add_space(7.0);
             ui.horizontal(|ui| {
-                ui.label(
-                    RichText::new("SKINSTRIKE")
-                        .strong()
-                        .size(20.0)
-                        .color(Color32::from_rgb(230, 234, 243)),
-                );
+                ui.label(RichText::new("Editor").strong().size(17.0));
                 ui.separator();
                 if ui.button("New from PNG").on_hover_text("Ctrl+N").clicked() {
                     self.request(Pending::New);
@@ -959,7 +994,7 @@ impl SkinStrikeApp {
     fn left_bar(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("tools")
             .resizable(false)
-            .exact_width(90.0)
+            .exact_width(116.0)
             .show(ctx, |ui| {
                 ui.add_space(12.0);
                 ui.heading("Tools");
@@ -969,6 +1004,16 @@ impl SkinStrikeApp {
                 ui.add_space(10.0);
                 ui.selectable_value(&mut self.tool, Tool::Pan, "Pan");
                 ui.small("Drag canvas");
+                ui.add_space(10.0);
+                ui.selectable_value(&mut self.tool, Tool::Brush, "Brush");
+                ui.small("Paint by hand");
+                if self.tool == Tool::Brush {
+                    ui.separator();
+                    ui.label("Color");
+                    ui.color_edit_button_srgb(&mut self.brush_color);
+                    ui.add(egui::Slider::new(&mut self.brush_radius, 0.5..=64.0).text("Size"));
+                    ui.small("Select a visible, unlocked paint layer.");
+                }
                 ui.separator();
                 if ui.button("Fit").clicked() {
                     self.zoom = 1.0;
@@ -1048,6 +1093,7 @@ impl SkinStrikeApp {
         let mut import_alpha = false;
         let mut import_uv = false;
         let mut add_color = false;
+        let mut add_paint = false;
         let mut before = self.document.as_ref().map(|d| d.state());
         let mut edited = false;
         egui::SidePanel::right("layers")
@@ -1065,6 +1111,7 @@ impl SkinStrikeApp {
                     ui.horizontal(|ui| {
                         if ui.button("+ Artwork").clicked() { import_artwork = true; }
                         if ui.button("+ Color").clicked() { add_color = true; }
+                        if ui.button("+ Paint").clicked() { add_paint = true; }
                     });
                     ui.small("Top layers appear first. Click a row to edit it.");
                     ui.separator();
@@ -1081,6 +1128,7 @@ impl SkinStrikeApp {
                                 let icon = match doc.layers[i].content {
                                     LayerContent::Color { .. } => "COLOR",
                                     LayerContent::Image { .. } => "IMAGE",
+                                    LayerContent::Paint { .. } => "PAINT",
                                 };
                                 if ui.selectable_label(self.selected == Some(i), format!("{}  {}", icon, doc.layers[i].name)).clicked() {
                                     self.selected = Some(i);
@@ -1122,6 +1170,10 @@ impl SkinStrikeApp {
                                 edited |= ui.add(egui::Slider::new(scale, 0.05..=10.0).logarithmic(true).text("Scale")).changed();
                                 edited |= ui.add(egui::Slider::new(rotation_deg, -180.0..=180.0).text("Rotate")).changed();
                                 ui.small("Select Move and drag on the canvas to position artwork.");
+                            }
+                            LayerContent::Paint { strokes } => {
+                                ui.small(format!("{} saved strokes", strokes.len()));
+                                ui.small("Choose Brush and draw on the canvas. Each gesture is one undo step.");
                             }
                         }
                         });
@@ -1219,6 +1271,11 @@ impl SkinStrikeApp {
                 self.error = Some(error);
             }
         }
+        if add_paint {
+            if let Err(error) = self.add_paint() {
+                self.error = Some(error);
+            }
+        }
         for (pick, kind) in [
             (import_artwork, None),
             (import_alpha, Some(AuxKind::Alpha)),
@@ -1268,7 +1325,24 @@ impl SkinStrikeApp {
                 }
             }
             let pan_drag = self.tool == Tool::Pan || response.dragged_by(egui::PointerButton::Middle);
-            if response.drag_started() && !pan_drag {
+            let origin = area.center() - egui::vec2(width as f32 * scale, height as f32 * scale) / 2.0 + self.pan;
+            let image_rect = egui::Rect::from_min_size(origin, egui::vec2(width as f32 * scale, height as f32 * scale));
+            if self.tool == Tool::Brush && !pan_drag {
+                let paintable = self.document.as_ref().and_then(|d| self.selected.and_then(|i| d.layers.get(i)))
+                    .is_some_and(|l| l.visible && !l.locked && matches!(&l.content, LayerContent::Paint { .. }));
+                if paintable && (response.drag_started() || response.dragged() || response.clicked()) {
+                    if let Some(pointer) = ctx.input(|i| i.pointer.interact_pos()) {
+                        if image_rect.contains(pointer) || !self.paint_points.is_empty() {
+                            let point = [((pointer.x-origin.x)/scale).clamp(0.0, width as f32 - 0.01),
+                                         ((pointer.y-origin.y)/scale).clamp(0.0, height as f32 - 0.01)];
+                            if self.paint_points.last().is_none_or(|p| (p[0]-point[0]).abs()+(p[1]-point[1]).abs() > 0.3)
+                                && self.paint_points.len() < 2048 { self.paint_points.push(point); }
+                        }
+                    }
+                }
+                if response.drag_stopped() || response.clicked() { self.finish_stroke(); }
+            }
+            if response.drag_started() && !pan_drag && self.tool == Tool::Move {
                 if let (Some(doc), Some(index)) = (&self.document, self.selected) {
                     if doc.layers.get(index).is_some_and(|l| !l.locked && matches!(&l.content, LayerContent::Image { .. })) {
                         self.drag_before = Some(doc.state());
@@ -1278,7 +1352,7 @@ impl SkinStrikeApp {
             if response.dragged() {
                 let delta = ctx.input(|i| i.pointer.delta());
                 if pan_drag { self.pan += delta; }
-                else if let Some(index) = self.selected {
+                else if self.tool == Tool::Move { if let Some(index) = self.selected {
                     if let Some(doc) = &mut self.document {
                         if let Some(layer) = doc.layers.get_mut(index) {
                             if !layer.locked {
@@ -1291,13 +1365,19 @@ impl SkinStrikeApp {
                             }
                         }
                     }
-                }
+                }}
             }
             if response.drag_stopped() {
                 if let Some(before) = self.drag_before.take() { self.commit(before); }
             }
-            let origin = area.center() - egui::vec2(width as f32 * scale, height as f32 * scale) / 2.0 + self.pan;
-            let image_rect = egui::Rect::from_min_size(origin, egui::vec2(width as f32 * scale, height as f32 * scale));
+            if self.paint_points.len() > 1 {
+                let stroke = egui::Stroke::new((self.brush_radius*scale*2.0).clamp(1.0, 128.0), Color32::from_rgb(self.brush_color[0], self.brush_color[1], self.brush_color[2]));
+                for pair in self.paint_points.windows(2) {
+                    let a = origin + egui::vec2(pair[0][0]*scale, pair[0][1]*scale);
+                    let b = origin + egui::vec2(pair[1][0]*scale, pair[1][1]*scale);
+                    painter.line_segment([a,b], stroke);
+                }
+            }
             let clip = image_rect.intersect(area);
             if clip.is_positive() {
                 let tile = 18.0;
