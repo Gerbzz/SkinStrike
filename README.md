@@ -29,7 +29,7 @@ SkinStrike lets CS2 creators compose a finish from a base PNG, color, positioned
 
 ![SkinStrike native editor displaying a saved synthetic paint layer](assets/screenshots/skinstrike-paint-editor-current.png)
 
-These [native app captures](docs/NATIVE_CREATOR_ACCEPTANCE.md) come from the successful hosted Windows build of this isolated [draft branch](https://github.com/Gerbzz/SkinStrike/tree/feature/project-library-2026-10-15). Every cover is rendered from one local synthetic project; the fixtures and executable are not published. An [earlier editor capture](docs/SCREENSHOT_PROVENANCE.md) remains available for comparison.
+These [genuine native captures](docs/NATIVE_CREATOR_ACCEPTANCE.md) came from tested draft source `91f558d94e4455fede5eb63a27fc5c63332b006d`. Eight original synthetic local projects supplied the rendered covers; only the screenshots were published. Main also displays them as [development previews](docs/DEVELOPMENT_CREATOR_PREVIEW.md), while feature code remains in [draft PR #1](https://github.com/Gerbzz/SkinStrike/pull/1). The [earlier main-branch editor capture](docs/SCREENSHOT_PROVENANCE.md) shows the narrower canvas before this work.
 
 ## Current status
 
