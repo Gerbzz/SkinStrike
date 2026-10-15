@@ -22,10 +22,10 @@ jobs:
         run: rustup default stable
       - name: Test project and rendering logic
         shell: pwsh
-        run: cargo test --locked --lib
+        run: cargo test --locked
       - name: Test native editor logic
         shell: pwsh
-        run: cargo test --locked --features native-ui --lib
+        run: cargo test --locked --features native-ui
       - name: Build native editor
         shell: pwsh
         run: cargo build --locked --features native-ui --bin skinstrike-ui
