@@ -21,11 +21,19 @@ SkinStrike lets CS2 creators compose a finish as layered image artwork. Start wi
 - Adjust placement, visibility, and opacity.
 - Keep an editable source and export a PNG.
 
-## Editor preview
+## Development preview from draft PR #1
+
+![SkinStrike draft native project library showing eight synthetic finish covers](assets/screenshots/skinstrike-creator-gallery-current.png)
+
+![SkinStrike draft native editor showing a saved synthetic paint layer](assets/screenshots/skinstrike-paint-editor-current.png)
+
+These are [genuine native captures with exact source provenance](docs/DEVELOPMENT_CREATOR_PREVIEW.md) from [draft PR #1](https://github.com/Gerbzz/SkinStrike/pull/1), built from `91f558d94e4455fede5eb63a27fc5c63332b006d`. They preview painting and a visual project library being developed. The feature code remains on the draft branch; the main branch still has the narrower editor described below. The eight project fixtures were synthetic and were not published.
+
+## Main branch editor preview
 
 ![SkinStrike native editor displaying a procedural blue and orange texture](assets/screenshots/skinstrike-editor.png)
 
-This [app-rendered capture](docs/SCREENSHOT_PROVENANCE.md) shows the current native finish canvas with an original synthetic texture. It is a view of one opened image, with no artwork layers yet.
+This [app-rendered capture](docs/SCREENSHOT_PROVENANCE.md) shows the main-branch native finish canvas with an original synthetic texture. It is a view of one opened image, with no artwork layers yet.
 
 ## Current status
 
