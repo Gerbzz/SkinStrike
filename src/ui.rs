@@ -1182,11 +1182,11 @@ impl SkinStrikeApp {
                                 egui::Frame::group(columns[column].style()).show(&mut columns[column], |ui| {
                                     if let Some(texture) = self.gallery_textures.get(index).and_then(|t| t.as_ref()) {
                                         let [width, height] = texture.size();
-                                        let scale = (190.0 / width as f32).min(190.0 / height as f32);
+                                        let scale = (165.0 / width as f32).min(165.0 / height as f32);
                                         ui.vertical_centered(|ui| {
                                             ui.image((texture.id(), egui::vec2(width as f32 * scale, height as f32 * scale)));
                                         });
-                                    } else { ui.allocate_space(egui::vec2(190.0, 190.0)); }
+                                    } else { ui.allocate_space(egui::vec2(165.0, 165.0)); }
                                     ui.label(RichText::new(&card.title).strong());
                                     ui.small(&card.collection);
                                     if let Some(error) = &card.error { ui.colored_label(Color32::LIGHT_RED, format!("Cannot preview: {error}")); }
