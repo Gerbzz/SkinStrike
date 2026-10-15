@@ -171,6 +171,7 @@ pub struct SkinStrikeApp {
     library_title: String,
     library_save_collection: String,
     logo_texture: Option<TextureHandle>,
+    show_about: bool,
 }
 
 fn preference_path() -> Option<PathBuf> {
@@ -234,6 +235,7 @@ impl Default for SkinStrikeApp {
             library_title: String::new(),
             library_save_collection: String::new(),
             logo_texture: None,
+            show_about: false,
         }
     }
 }
@@ -1085,6 +1087,7 @@ impl SkinStrikeApp {
                         ui.small("A PWDS Strike app");
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button("About").clicked() { self.show_about = true; }
                         if self.document.is_some() && ui.button("Return to editor").clicked() { self.gallery_open = false; }
                         if ui.button("New from PNG").clicked() { self.request(Pending::New); }
                     });
@@ -1242,6 +1245,10 @@ impl SkinStrikeApp {
                 }
                 ui.separator();
                 ui.label(RichText::new("Editor").strong().size(17.0));
+                ui.separator();
+                if ui.button("About").clicked() {
+                    self.show_about = true;
+                }
                 ui.separator();
                 if ui.button("New from PNG").on_hover_text("Ctrl+N").clicked() {
                     self.request(Pending::New);
@@ -1854,6 +1861,18 @@ impl SkinStrikeApp {
     }
 
     fn dialogs(&mut self, ctx: &egui::Context) {
+        if self.show_about {
+            let mut open = self.show_about;
+            egui::Window::new("About SkinStrike").open(&mut open).resizable(false)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+                    ui.heading("SkinStrike");
+                    ui.label("A PWDS Strike app");
+                    ui.separator();
+                    ui.label("Local layered texture authoring and a visual project library.");
+                    ui.small("Creator prototype. Exported PNGs and material choices require review in CS2 Workshop Tools.");
+                });
+            self.show_about = open;
+        }
         if self.save_to_library {
             egui::Window::new("Save finish to collection")
                 .collapsible(false)
