@@ -23,15 +23,17 @@ SkinStrike lets CS2 creators compose a finish from a base PNG, color, positioned
 - Find saved finishes by collection and title, with covers rendered from each project.
 - Keep an editable source and export a PNG.
 
-## Editor preview
+## Creator preview
 
-![SkinStrike native editor displaying a procedural blue and orange texture](assets/screenshots/skinstrike-editor.png)
+![SkinStrike native project library with eight rendered synthetic finish covers](assets/screenshots/skinstrike-creator-gallery-current.png)
 
-This [app-rendered capture](docs/SCREENSHOT_PROVENANCE.md) shows the earlier native finish canvas with an original synthetic texture. The library and painting work is in an isolated [draft branch](https://github.com/Gerbzz/SkinStrike/tree/feature/project-library-2026-10-15); its new native views require current screenshot review.
+![SkinStrike native editor displaying a saved synthetic paint layer](assets/screenshots/skinstrike-paint-editor-current.png)
+
+These [native app captures](docs/NATIVE_CREATOR_ACCEPTANCE.md) come from the successful hosted Windows build of this isolated [draft branch](https://github.com/Gerbzz/SkinStrike/tree/feature/project-library-2026-10-15). Every cover is rendered from one local synthetic project; the fixtures and executable are not published. An [earlier editor capture](docs/SCREENSHOT_PROVENANCE.md) remains available for comparison.
 
 ## Current status
 
-Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have headless coverage. The draft branch adds bounded brush strokes and a local visual project library, with [an acceptance checklist](docs/CREATOR_ACCEPTANCE.md) tracking what is tested and what remains to review. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
+Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have automated coverage. The draft branch adds bounded brush strokes and a local visual project library; its hosted Windows tests pass and its two captured native states were visually inspected. The [acceptance checklist](docs/CREATOR_ACCEPTANCE.md) tracks remaining interaction checks. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
 
 ## A finish from source to export
 
@@ -55,7 +57,7 @@ The editor supports undo/redo, background import and export work, cooperative ca
 
 ## What the current UI helps you inspect
 
-The desktop window shows the opened texture, layer controls, color and alpha views, UV reference overlay, project and export paths, and operation errors. Alpha data view suppresses the colored UV overlay so grayscale values stay readable. The properties panel scrolls in compact windows.
+The startup window shows the approved SkinStrike logo, a restrained PWDS credit, local collections, searchable project cards, actual rendered covers, and missing/corrupt project states. The editor shows the opened texture, paint and artwork tools, layers, color and alpha views, UV reference overlay, project and export paths, and operation errors. Alpha data view suppresses the colored UV overlay so grayscale values stay readable. The properties panel scrolls in compact windows.
 
 Material intent records a target finish-style note for the artist; it does not change pixels or generate a CS2 material. Valve's [Weapon Finishes Guide](https://www.counter-strike.net/workshop/workshopfinishes/) describes style-dependent alpha meanings, and [Workshop Resources](https://www.counter-strike.net/workshop/workshopresources) lists official UV sheets and models. No Valve assets are bundled here. Check actual style, UV placement, wear, shading, and weapon appearance in CS2 Workshop Tools.
 
@@ -82,7 +84,7 @@ Color channels and opacity are integers from 0 to 255. To exercise the new chann
 
 ## Scope and next steps
 
-SkinStrike's draft offers a simple round brush, not advanced mask painting or pressure-sensitive brush dynamics. It has no rotatable verified weapon preview, Valve material generation, or verified Counter-Strike asset bundle. The earlier native window compiled and rendered the documented synthetic texture; draft branch UI acceptance and clean-machine packaging are still pending.
+SkinStrike's draft offers a simple round brush, not advanced mask painting or pressure-sensitive brush dynamics. It has no rotatable verified weapon preview, Valve material generation, or verified Counter-Strike asset bundle. The current hosted editor compiled, passed automated tests, and rendered the documented synthetic projects in real native windows. Hands-on interaction review and clean-machine packaging are still pending.
 
 Limits: 128 layers, 80 characters per layer name, 4096 pixels per PNG side, 32 MiB per PNG file, 64 megapixels across unique referenced decoded assets, and 256 MiB per project JSON. Preview is capped at 1024 pixels; final export uses the full canvas. Existing PNG replacements are limited to 32 MiB. A Valve-compatible round trip remains a future verification gate.
 
