@@ -42,6 +42,16 @@ pub enum LayerContent {
         scale: f32,
         rotation_deg: f32,
     },
+    Paint {
+        strokes: Vec<PaintStroke>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PaintStroke {
+    pub rgb: [u8; 3],
+    pub radius: f32,
+    pub points: Vec<[f32; 2]>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -135,6 +145,39 @@ impl FinishDocument {
             opacity,
             content: LayerContent::Color { rgb },
         });
+        Ok(())
+    }
+
+    pub fn add_paint_layer(&mut self, name: &str) -> Result<usize, String> {
+        self.check_layer_slot(name)?;
+        self.layers.push(Layer {
+            name: name.trim().into(),
+            visible: true,
+            locked: false,
+            opacity: 255,
+            content: LayerContent::Paint {
+                strokes: Vec::new(),
+            },
+        });
+        Ok(self.layers.len() - 1)
+    }
+
+    pub fn add_paint_stroke(&mut self, index: usize, stroke: PaintStroke) -> Result<(), String> {
+        let layer = self.layers.get(index).ok_or("Select a paint layer first")?;
+        if layer.locked || !layer.visible {
+            return Err("Unlock and show the paint layer before drawing".into());
+        }
+        if !matches!(&layer.content, LayerContent::Paint { .. }) {
+            return Err("Select a paint layer before drawing".into());
+        }
+        let before = self.state();
+        if let LayerContent::Paint { strokes } = &mut self.layers[index].content {
+            strokes.push(stroke);
+        }
+        if let Err(error) = validate_edit_state(self) {
+            self.restore(before);
+            return Err(error);
+        }
         Ok(())
     }
 
@@ -335,6 +378,8 @@ pub fn validate_edit_state(document: &FinishDocument) -> Result<(), String> {
         return Err("Project supports at most 128 layers".into());
     }
     let mut names = BTreeSet::new();
+    let mut total_paint_points = 0usize;
+    let mut paint_cost = 0.0f64;
     for layer in &document.layers {
         validate_name(&layer.name)?;
         if !names.insert(layer.name.trim().to_lowercase()) {
@@ -363,6 +408,43 @@ pub fn validate_edit_state(document: &FinishDocument) -> Result<(), String> {
                 return Err(format!("Artwork asset missing for layer '{}'", layer.name));
             }
         }
+        if let LayerContent::Paint { strokes } = &layer.content {
+            if strokes.len() > 256 {
+                return Err("Paint layer exceeds 256 strokes".into());
+            }
+            for stroke in strokes {
+                if !stroke.radius.is_finite()
+                    || !(0.5..=64.0).contains(&stroke.radius)
+                    || stroke.points.is_empty()
+                    || stroke.points.len() > 2048
+                {
+                    return Err("Paint stroke radius or point count is invalid".into());
+                }
+                total_paint_points += stroke.points.len();
+                let radius = f64::from(stroke.radius);
+                paint_cost += stroke.points.len() as f64 * std::f64::consts::PI * radius * radius;
+                for (point_index, point) in stroke.points.iter().enumerate() {
+                    if !point[0].is_finite()
+                        || !point[1].is_finite()
+                        || point[0] < 0.0
+                        || point[1] < 0.0
+                        || point[0] > document.width as f32
+                        || point[1] > document.height as f32
+                    {
+                        return Err("Paint stroke point is outside the canvas".into());
+                    }
+                    if point_index > 0 {
+                        let previous = stroke.points[point_index - 1];
+                        let dx = f64::from(point[0] - previous[0]);
+                        let dy = f64::from(point[1] - previous[1]);
+                        paint_cost += 2.0 * radius * (dx * dx + dy * dy).sqrt();
+                    }
+                }
+            }
+        }
+    }
+    if total_paint_points > 8192 || paint_cost > 32_000_000.0 {
+        return Err("Project paint data exceeds the rendering budget".into());
     }
     if document.alpha_mode == AlphaMode::ImportedData && document.alpha_data.is_none() {
         return Err("Imported alpha mode requires an alpha data PNG".into());
@@ -712,6 +794,63 @@ fn mix_rgb(dst: &mut Rgba<u8>, src: [u8; 3], opacity: u8, source_alpha: u8, mode
     }
 }
 
+fn raster_paint_stroke(
+    output: &mut RgbaImage,
+    stroke: &PaintStroke,
+    factor: f32,
+    opacity: u8,
+    mode: AlphaMode,
+    visited: &mut [u16],
+    stamp: u16,
+    cancelled: &dyn Fn() -> bool,
+) -> Result<(), String> {
+    let points = &stroke.points;
+    let segment_count = points.len().saturating_sub(1).max(1);
+    let radius_sq = stroke.radius * stroke.radius;
+    let width = output.width();
+    let height = output.height();
+    for segment in 0..segment_count {
+        if cancelled() {
+            return Err("Operation cancelled".into());
+        }
+        let a = points[segment];
+        let b = points[(segment + 1).min(points.len() - 1)];
+        let dx = b[0] - a[0];
+        let dy = b[1] - a[1];
+        let length_sq = dx * dx + dy * dy;
+        let min_x = (((a[0].min(b[0]) - stroke.radius) * factor).floor() as i32).max(0) as u32;
+        let min_y = (((a[1].min(b[1]) - stroke.radius) * factor).floor() as i32).max(0) as u32;
+        let max_x = (((a[0].max(b[0]) + stroke.radius) * factor).ceil() as i32 + 1)
+            .clamp(0, width as i32) as u32;
+        let max_y = (((a[1].max(b[1]) + stroke.radius) * factor).ceil() as i32 + 1)
+            .clamp(0, height as i32) as u32;
+        for py in min_y..max_y {
+            if py % 64 == 0 && cancelled() {
+                return Err("Operation cancelled".into());
+            }
+            let canvas_y = (py as f32 + 0.5) / factor;
+            for px in min_x..max_x {
+                let canvas_x = (px as f32 + 0.5) / factor;
+                let t = if length_sq > 0.0 {
+                    (((canvas_x - a[0]) * dx + (canvas_y - a[1]) * dy) / length_sq).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let gap_x = canvas_x - (a[0] + t * dx);
+                let gap_y = canvas_y - (a[1] + t * dy);
+                if gap_x * gap_x + gap_y * gap_y <= radius_sq {
+                    let index = py as usize * width as usize + px as usize;
+                    if visited[index] != stamp {
+                        visited[index] = stamp;
+                        mix_rgb(output.get_pixel_mut(px, py), stroke.rgb, opacity, 255, mode);
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 #[derive(Clone, Default)]
 pub struct RenderCache {
     images: BTreeMap<String, Arc<RgbaImage>>,
@@ -864,6 +1003,21 @@ pub fn render_document_cached(
                             );
                         }
                     }
+                }
+            }
+            LayerContent::Paint { strokes } => {
+                let mut visited = vec![0u16; out_w as usize * out_h as usize];
+                for (index, stroke) in strokes.iter().enumerate() {
+                    raster_paint_stroke(
+                        &mut output,
+                        stroke,
+                        factor,
+                        layer.opacity,
+                        document.alpha_mode,
+                        &mut visited,
+                        index as u16 + 1,
+                        cancelled,
+                    )?;
                 }
             }
         }
@@ -1160,6 +1314,89 @@ pub fn export_png_with_cache(
             .map_err(|e| format!("Cannot create PNG: {}", e.error))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod hand_paint_tests {
+    use super::*;
+
+    #[test]
+    fn painted_stroke_round_trips_and_changes_real_preview_and_export_pixels() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = dir.path().join("base.png");
+        RgbaImage::from_pixel(16, 16, Rgba([10, 20, 30, 255]))
+            .save(&base)
+            .unwrap();
+        let project = dir.path().join("hand-painted.skinstrike.json");
+        let mut document = new_document(&base, &project).unwrap();
+        let layer = document.add_paint_layer("Hand paint").unwrap();
+        let before = document.state();
+        document
+            .add_paint_stroke(
+                layer,
+                PaintStroke {
+                    rgb: [230, 40, 20],
+                    radius: 2.0,
+                    points: vec![[7.5, 8.5], [8.5, 8.5]],
+                },
+            )
+            .unwrap();
+
+        let full = render_document(&document, None).unwrap();
+        let preview = render_document(&document, Some(8)).unwrap();
+        assert_eq!(full.get_pixel(8, 8).0, [230, 40, 20, 255]);
+        assert_eq!(full.get_pixel(0, 0).0, [10, 20, 30, 255]);
+        assert_eq!(preview.get_pixel(4, 4).0[..3], [230, 40, 20]);
+
+        save_document(&document, &project, false).unwrap();
+        let reopened = load_document(&project).unwrap();
+        assert_eq!(render_document(&reopened, None).unwrap(), full);
+        document.restore(before);
+        assert_eq!(
+            render_document(&document, None).unwrap().get_pixel(8, 8).0,
+            [10, 20, 30, 255]
+        );
+    }
+
+    #[test]
+    fn bad_or_locked_paint_strokes_leave_the_project_unchanged() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = dir.path().join("base.png");
+        RgbaImage::from_pixel(8, 8, Rgba([0, 0, 0, 255]))
+            .save(&base)
+            .unwrap();
+        let mut document = new_document(&base, &dir.path().join("finish.json")).unwrap();
+        let layer = document.add_paint_layer("Paint").unwrap();
+        let original = document.state();
+        assert!(
+            document
+                .add_paint_stroke(
+                    layer,
+                    PaintStroke {
+                        rgb: [255, 0, 0],
+                        radius: f32::NAN,
+                        points: vec![[2.0, 2.0]],
+                    }
+                )
+                .is_err()
+        );
+        assert_eq!(document.state(), original);
+        document.layers[layer].locked = true;
+        let locked = document.state();
+        assert!(
+            document
+                .add_paint_stroke(
+                    layer,
+                    PaintStroke {
+                        rgb: [255, 0, 0],
+                        radius: 2.0,
+                        points: vec![[2.0, 2.0]],
+                    }
+                )
+                .is_err()
+        );
+        assert_eq!(document.state(), locked);
+    }
 }
 #[cfg(test)]
 mod authoring_tests {
@@ -1540,6 +1777,7 @@ mod review_regressions {
 mod cancellation_regressions {
     use super::*;
     use image::Rgba;
+    use std::cell::Cell;
 
     #[test]
     fn cancelled_save_leaves_destination_untouched() {
@@ -1560,6 +1798,50 @@ mod cancellation_regressions {
         let original = std::fs::read(&target).unwrap();
         assert!(save_document_with_cancel(&doc, &target, true, &|| true).is_err());
         assert_eq!(std::fs::read(&target).unwrap(), original);
+    }
+
+    #[test]
+    fn cancellation_after_staging_preserves_previous_project_and_repeated_save_is_stable() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = dir.path().join("base.png");
+        RgbaImage::from_pixel(32, 32, Rgba([12, 32, 52, 255]))
+            .save(&base)
+            .unwrap();
+        let target = dir.path().join("finish.skinstrike.json");
+        let mut doc = new_document(&base, &target).unwrap();
+        save_document(&doc, &target, false).unwrap();
+        let previous = std::fs::read(&target).unwrap();
+        let paint = doc.add_paint_layer("Brushwork").unwrap();
+        doc.add_paint_stroke(
+            paint,
+            PaintStroke {
+                rgb: [220, 65, 25],
+                radius: 3.0,
+                points: vec![[16.5, 16.5]],
+            },
+        )
+        .unwrap();
+
+        let calls = Cell::new(0);
+        let cancel_after_stage = || {
+            calls.set(calls.get() + 1);
+            calls.get() == 3
+        };
+        assert!(
+            save_document_with_cancel(&doc, &target, true, &cancel_after_stage)
+                .unwrap_err()
+                .contains("cancelled")
+        );
+        assert_eq!(calls.get(), 3);
+        assert_eq!(std::fs::read(&target).unwrap(), previous);
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 2);
+
+        save_document(&doc, &target, true).unwrap();
+        let updated = std::fs::read(&target).unwrap();
+        assert_ne!(updated, previous);
+        assert_eq!(load_document(&target).unwrap().layers.len(), 1);
+        save_document(&doc, &target, true).unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), updated);
     }
 
     #[test]

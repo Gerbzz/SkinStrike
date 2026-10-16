@@ -9,6 +9,7 @@ use std::path::Path;
 pub mod ui;
 
 pub mod document;
+pub mod project_library;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TextureReport {
