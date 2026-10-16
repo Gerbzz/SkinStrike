@@ -29,11 +29,11 @@ SkinStrike lets CS2 creators compose a finish from a base PNG, color, positioned
 
 ![SkinStrike native editor displaying a saved synthetic paint layer](assets/screenshots/skinstrike-paint-editor-current.png)
 
-These [genuine native captures](docs/NATIVE_CREATOR_ACCEPTANCE.md) came from tested draft source `91f558d94e4455fede5eb63a27fc5c63332b006d`. Eight original synthetic local projects supplied the rendered covers; only the screenshots were published. Main also displays them as [development previews](docs/DEVELOPMENT_CREATOR_PREVIEW.md), while feature code remains in [draft PR #1](https://github.com/Gerbzz/SkinStrike/pull/1). The [earlier main-branch editor capture](docs/SCREENSHOT_PROVENANCE.md) shows the narrower canvas before this work.
+These [genuine native captures](docs/NATIVE_CREATOR_ACCEPTANCE.md) came from tested source `91f558d94e4455fede5eb63a27fc5c63332b006d`. Eight original synthetic local projects supplied the rendered covers; only the screenshots were published. They first appeared on main as [development previews](docs/DEVELOPMENT_CREATOR_PREVIEW.md). The implementation and review are in [PR #1](https://github.com/Gerbzz/SkinStrike/pull/1). The [earlier editor capture](docs/SCREENSHOT_PROVENANCE.md) shows the narrower canvas before this work.
 
 ## Current status
 
-Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have automated coverage. The draft branch adds bounded brush strokes and a local visual project library; its hosted Windows tests pass and its two captured native states were visually inspected. The [core persistence review](docs/CORE_PERSISTENCE_ACCEPTANCE.md) records exact-binary save, reopen, export, and error checks. The [acceptance checklist](docs/CREATOR_ACCEPTANCE.md) tracks remaining interaction checks. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
+Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have automated coverage. The creator work adds bounded brush strokes and a local visual project library; its hosted Windows tests pass and its two captured native states were visually inspected. The [core persistence review](docs/CORE_PERSISTENCE_ACCEPTANCE.md) records exact-binary save, reopen, export, and error checks. The [acceptance checklist](docs/CREATOR_ACCEPTANCE.md) tracks remaining interaction checks. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
 
 ## A finish from source to export
 
@@ -84,11 +84,11 @@ Color channels and opacity are integers from 0 to 255. To exercise the new chann
 
 ## Scope and next steps
 
-SkinStrike's draft offers a simple round brush, not advanced mask painting or pressure-sensitive brush dynamics. It has no rotatable verified weapon preview, Valve material generation, or verified Counter-Strike asset bundle. The current hosted editor compiled, passed automated tests, and rendered the documented synthetic projects in real native windows. Hands-on interaction review and clean-machine packaging are still pending.
+SkinStrike offers a simple round brush, without advanced mask painting or pressure-sensitive brush dynamics. It has no rotatable verified weapon preview, Valve material generation, or verified Counter-Strike asset bundle. The tested hosted editor compiled, passed automated tests, and rendered the documented synthetic projects in real native windows. Hands-on interaction review and clean-machine packaging are still pending.
 
 Limits: 128 layers, 80 characters per layer name, 4096 pixels per PNG side, 32 MiB per PNG file, 64 megapixels across unique referenced decoded assets, and 256 MiB per project JSON. Preview is capped at 1024 pixels; final export uses the full canvas. Existing PNG replacements are limited to 32 MiB. A Valve-compatible round trip remains a future verification gate.
 
-The [focused foundation review](docs/FOUNDATION_CHOICE_2026-10-15.md) explains why this draft retains its Rust document and renderer instead of importing a larger photo or 3D painting engine. No code or artwork was copied from those references.
+The [focused foundation review](docs/FOUNDATION_CHOICE_2026-10-15.md) explains why the creator work retains its Rust document and renderer instead of importing a larger photo or 3D painting engine. No code or artwork was copied from those references.
 
 This repository grants no public license for its project source. Third-party crates retain their own licenses.
 
