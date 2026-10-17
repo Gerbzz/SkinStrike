@@ -1079,130 +1079,221 @@ impl SkinStrikeApp {
     }
 
     fn gallery(&mut self, ctx: &egui::Context) {
-        if self.logo_texture.is_none() {
-            if let Ok(image) =
-                image::load_from_memory(include_bytes!("../assets/branding/SkinStrike.png"))
-            {
-                let image = image.to_rgba8();
-                self.logo_texture = Some(ctx.load_texture(
-                    "skinstrike-approved-logo",
-                    ColorImage::from_rgba_unmultiplied(
-                        [image.width() as usize, image.height() as usize],
-                        image.as_raw(),
-                    ),
-                    TextureOptions::LINEAR,
-                ));
-            }
-        }
         let mut open_path = None;
         let mut choose = false;
         let mut refresh = false;
+        let mut create_from_empty = false;
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.add_space(20.0);
                 ui.horizontal(|ui| {
-                    if let Some(logo) = &self.logo_texture { ui.image((logo.id(), egui::vec2(92.0, 92.0))); }
                     ui.vertical(|ui| {
-                        ui.heading(RichText::new("SkinStrike").size(30.0).strong());
+                        ui.heading(RichText::new("SkinStrike").size(24.0).strong());
                         ui.label("Your finishes, organized by collection");
-                        ui.small("A PWDS Strike app");
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("About").clicked() { self.show_about = true; }
-                        if self.document.is_some() && ui.button("Return to editor").clicked() { self.gallery_open = false; }
-                        if ui.button("New from PNG").clicked() { self.request(Pending::New); }
+                        if ui.button("About").clicked() {
+                            self.show_about = true;
+                        }
+                        if self.document.is_some() && ui.button("Return to editor").clicked() {
+                            self.gallery_open = false;
+                        }
+                        if ui.button("New from PNG").clicked() {
+                            self.request(Pending::New);
+                        }
                     });
                 });
                 ui.add_space(20.0);
                 ui.horizontal(|ui| {
-                    if ui.button("Choose library folder").clicked() { choose = true; }
-                    if ui.button("Refresh").clicked() { refresh = true; }
+                    if ui.button("Choose library folder").clicked() {
+                        choose = true;
+                    }
+                    if ui.button("Refresh").clicked() {
+                        refresh = true;
+                    }
                     if let Some(root) = &self.library_root {
                         let folder = root.file_name().unwrap_or_default().to_string_lossy();
-                        ui.small(format!("Library: {folder}")).on_hover_text(root.display().to_string());
+                        ui.small(format!("Library: {folder}"))
+                            .on_hover_text(root.display().to_string());
                     }
                 });
-                if let Some(error) = &self.error { ui.colored_label(Color32::from_rgb(255, 140, 130), error); }
+                if let Some(error) = &self.error {
+                    ui.colored_label(Color32::from_rgb(255, 140, 130), error);
+                }
                 let Some(_) = &self.library_root else {
                     ui.add_space(40.0);
-                    ui.heading("Choose a local folder to start your library");
-                    ui.label("Collections and portable project files stay in the folder you select.");
+                    ui.vertical_centered(|ui| {
+                        ui.heading("Keep your finishes in one place");
+                        ui.add_space(8.0);
+                        ui.label(
+                            "Choose a local folder for collections and portable project files.",
+                        );
+                        ui.add_space(16.0);
+                        if ui.button("Choose library folder…").clicked() {
+                            choose = true;
+                        }
+                    });
                     return;
                 };
                 ui.add_space(16.0);
                 ui.horizontal(|ui| {
                     ui.label("New collection");
-                    ui.add(egui::TextEdit::singleline(&mut self.new_collection).desired_width(170.0).hint_text("Collection name"));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.new_collection)
+                            .desired_width(170.0)
+                            .hint_text("Collection name"),
+                    );
                     if ui.button("Create").clicked() {
                         if let Some(root) = &self.library_root {
-                            match ProjectLibrary::open(root).and_then(|library| library.create_collection(&self.new_collection)) {
-                                Ok(_) => { self.new_collection.clear(); refresh = true; self.error = None; },
+                            match ProjectLibrary::open(root)
+                                .and_then(|library| library.create_collection(&self.new_collection))
+                            {
+                                Ok(_) => {
+                                    self.new_collection.clear();
+                                    refresh = true;
+                                    self.error = None;
+                                }
                                 Err(error) => self.error = Some(error),
                             }
                         }
                     }
                     ui.separator();
-                    if self.document.is_some() && ui.button("Save current finish to collection").clicked() {
+                    if self.document.is_some()
+                        && ui.button("Save current finish to collection").clicked()
+                    {
                         self.library_title = self.current_project_title();
-                        self.library_save_collection = self.gallery_collection.clone()
-                            .or_else(|| self.gallery_collections.first().cloned()).unwrap_or_default();
+                        self.library_save_collection = self
+                            .gallery_collection
+                            .clone()
+                            .or_else(|| self.gallery_collections.first().cloned())
+                            .unwrap_or_default();
                         self.save_to_library = true;
                     }
                 });
                 ui.add_space(12.0);
                 ui.horizontal(|ui| {
-                    if ui.selectable_label(self.gallery_collection.is_none(), "All projects").clicked() {
-                        self.gallery_collection = None; self.gallery_offset = 0; refresh = true;
+                    if ui
+                        .selectable_label(self.gallery_collection.is_none(), "All projects")
+                        .clicked()
+                    {
+                        self.gallery_collection = None;
+                        self.gallery_offset = 0;
+                        refresh = true;
                     }
                     for name in &self.gallery_collections {
-                        if ui.selectable_label(self.gallery_collection.as_ref() == Some(name), name).clicked() {
-                            self.gallery_collection = Some(name.clone()); self.gallery_offset = 0; refresh = true;
+                        if ui
+                            .selectable_label(self.gallery_collection.as_ref() == Some(name), name)
+                            .clicked()
+                        {
+                            self.gallery_collection = Some(name.clone());
+                            self.gallery_offset = 0;
+                            refresh = true;
                         }
                     }
                 });
                 ui.add_space(8.0);
-                if ui.add(egui::TextEdit::singleline(&mut self.gallery_query).hint_text("Search project titles")).changed() {
-                    self.gallery_offset = 0; refresh = true;
+                if ui
+                    .add(
+                        egui::TextEdit::singleline(&mut self.gallery_query)
+                            .hint_text("Search project titles"),
+                    )
+                    .changed()
+                {
+                    self.gallery_offset = 0;
+                    refresh = true;
                 }
                 ui.separator();
-                if self.gallery_job.is_some() || self.gallery_dirty_at.is_some() { ui.label("Loading your projects..."); }
+                if self.gallery_job.is_some() || self.gallery_dirty_at.is_some() {
+                    ui.label("Loading your projects...");
+                }
                 if let Some(job) = &self.io_job {
                     ui.horizontal(|ui| {
                         ui.label(&self.status);
-                        if ui.button("Cancel file work").clicked() { job.cancel.store(true, Ordering::Relaxed); }
+                        if ui.button("Cancel file work").clicked() {
+                            job.cancel.store(true, Ordering::Relaxed);
+                        }
                     });
                 }
                 if let Some(page) = &self.gallery_page {
                     ui.small(format!("{} projects", page.total));
-                    if page.cards.is_empty() && self.gallery_job.is_none() { ui.label("No projects here yet. Save a finish into a collection to see its real cover."); }
-                    for row in (0..page.cards.len()).step_by(4) {
-                        ui.columns(4, |columns| {
-                            for (column, index) in (row..(row+4).min(page.cards.len())).enumerate() {
+                    if page.cards.is_empty() && self.gallery_job.is_none() {
+                        ui.add_space(24.0);
+                        ui.vertical_centered(|ui| {
+                            ui.heading("No finishes in this view");
+                            ui.label(
+                                "Try another collection or search, or start a finish from a PNG.",
+                            );
+                            ui.add_space(12.0);
+                            if ui.button("New from PNG…").clicked() {
+                                create_from_empty = true;
+                            }
+                        });
+                    }
+                    let columns_per_row =
+                        ((ui.available_width() / 260.0).floor() as usize).clamp(1, 4);
+                    for row in (0..page.cards.len()).step_by(columns_per_row) {
+                        ui.columns(columns_per_row, |columns| {
+                            for (column, index) in
+                                (row..(row + columns_per_row).min(page.cards.len())).enumerate()
+                            {
                                 let card = &page.cards[index];
-                                egui::Frame::group(columns[column].style()).show(&mut columns[column], |ui| {
-                                    if let Some(texture) = self.gallery_textures.get(index).and_then(|t| t.as_ref()) {
-                                        let [width, height] = texture.size();
-                                        let scale = (165.0 / width as f32).min(165.0 / height as f32);
-                                        ui.vertical_centered(|ui| {
-                                            ui.image((texture.id(), egui::vec2(width as f32 * scale, height as f32 * scale)));
-                                        });
-                                    } else { ui.allocate_space(egui::vec2(165.0, 165.0)); }
-                                    ui.label(RichText::new(&card.title).strong());
-                                    ui.small(&card.collection);
-                                    if let Some(error) = &card.error { ui.colored_label(Color32::LIGHT_RED, format!("Cannot preview: {error}")); }
-                                    else if ui.button("Open in editor").clicked() { open_path = Some(card.path.clone()); }
-                                });
+                                egui::Frame::group(columns[column].style()).show(
+                                    &mut columns[column],
+                                    |ui| {
+                                        if let Some(texture) = self
+                                            .gallery_textures
+                                            .get(index)
+                                            .and_then(|t| t.as_ref())
+                                        {
+                                            let [width, height] = texture.size();
+                                            let scale =
+                                                (165.0 / width as f32).min(165.0 / height as f32);
+                                            ui.vertical_centered(|ui| {
+                                                ui.image((
+                                                    texture.id(),
+                                                    egui::vec2(
+                                                        width as f32 * scale,
+                                                        height as f32 * scale,
+                                                    ),
+                                                ));
+                                            });
+                                        } else {
+                                            ui.allocate_space(egui::vec2(165.0, 165.0));
+                                        }
+                                        ui.label(RichText::new(&card.title).strong());
+                                        ui.small(&card.collection);
+                                        if let Some(error) = &card.error {
+                                            ui.colored_label(
+                                                Color32::LIGHT_RED,
+                                                format!("Cannot preview: {error}"),
+                                            );
+                                        } else if ui.button("Open in editor").clicked() {
+                                            open_path = Some(card.path.clone());
+                                        }
+                                    },
+                                );
                             }
                         });
                         ui.add_space(8.0);
                     }
                     ui.horizontal(|ui| {
-                        if ui.add_enabled(self.gallery_offset > 0, egui::Button::new("Previous")).clicked() {
-                            self.gallery_offset = self.gallery_offset.saturating_sub(12); refresh = true;
+                        if ui
+                            .add_enabled(self.gallery_offset > 0, egui::Button::new("Previous"))
+                            .clicked()
+                        {
+                            self.gallery_offset = self.gallery_offset.saturating_sub(12);
+                            refresh = true;
                         }
                         ui.label(format!("Page {}", self.gallery_offset / 12 + 1));
-                        if ui.add_enabled(self.gallery_offset + 12 < page.total, egui::Button::new("Next")).clicked() {
-                            self.gallery_offset += 12; refresh = true;
+                        if ui
+                            .add_enabled(
+                                self.gallery_offset + 12 < page.total,
+                                egui::Button::new("Next"),
+                            )
+                            .clicked()
+                        {
+                            self.gallery_offset += 12;
+                            refresh = true;
                         }
                     });
                 }
@@ -1210,6 +1301,9 @@ impl SkinStrikeApp {
         });
         if choose {
             self.choose_library();
+        }
+        if create_from_empty {
+            self.request(Pending::New);
         }
         if refresh {
             self.schedule_gallery_refresh();
@@ -1272,11 +1366,14 @@ impl SkinStrikeApp {
                 }
                 ui.separator();
                 ui.label(RichText::new("Editor").strong().size(17.0));
-                ui.separator();
-                if ui.button("About").clicked() {
-                    self.show_about = true;
-                }
-                ui.separator();
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("About").clicked() {
+                        self.show_about = true;
+                    }
+                });
+            });
+            ui.add_space(6.0);
+            ui.horizontal_wrapped(|ui| {
                 if ui.button("New from PNG").on_hover_text("Ctrl+N").clicked() {
                     self.request(Pending::New);
                 }
@@ -1873,9 +1970,27 @@ impl SkinStrikeApp {
 
     fn dialogs(&mut self, ctx: &egui::Context) {
         if self.show_about {
+            if self.logo_texture.is_none() {
+                if let Ok(image) =
+                    image::load_from_memory(include_bytes!("../assets/branding/SkinStrike.png"))
+                {
+                    let image = image.to_rgba8();
+                    self.logo_texture = Some(ctx.load_texture(
+                        "skinstrike-approved-logo",
+                        ColorImage::from_rgba_unmultiplied(
+                            [image.width() as usize, image.height() as usize],
+                            image.as_raw(),
+                        ),
+                        TextureOptions::LINEAR,
+                    ));
+                }
+            }
             let mut open = self.show_about;
             egui::Window::new("About SkinStrike").open(&mut open).resizable(false)
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+                    if let Some(logo) = &self.logo_texture {
+                        ui.image((logo.id(), egui::vec2(92.0, 92.0)));
+                    }
                     ui.heading("SkinStrike");
                     ui.label("A PWDS Strike app");
                     ui.separator();
