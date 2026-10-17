@@ -1079,21 +1079,6 @@ impl SkinStrikeApp {
     }
 
     fn gallery(&mut self, ctx: &egui::Context) {
-        if self.logo_texture.is_none() {
-            if let Ok(image) =
-                image::load_from_memory(include_bytes!("../assets/branding/SkinStrike.png"))
-            {
-                let image = image.to_rgba8();
-                self.logo_texture = Some(ctx.load_texture(
-                    "skinstrike-approved-logo",
-                    ColorImage::from_rgba_unmultiplied(
-                        [image.width() as usize, image.height() as usize],
-                        image.as_raw(),
-                    ),
-                    TextureOptions::LINEAR,
-                ));
-            }
-        }
         let mut open_path = None;
         let mut choose = false;
         let mut refresh = false;
@@ -1102,11 +1087,8 @@ impl SkinStrikeApp {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.add_space(20.0);
                 ui.horizontal(|ui| {
-                    if let Some(logo) = &self.logo_texture {
-                        ui.image((logo.id(), egui::vec2(92.0, 92.0)));
-                    }
                     ui.vertical(|ui| {
-                        ui.heading(RichText::new("SkinStrike").size(30.0).strong());
+                        ui.heading(RichText::new("SkinStrike").size(24.0).strong());
                         ui.label("Your finishes, organized by collection");
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1988,9 +1970,27 @@ impl SkinStrikeApp {
 
     fn dialogs(&mut self, ctx: &egui::Context) {
         if self.show_about {
+            if self.logo_texture.is_none() {
+                if let Ok(image) =
+                    image::load_from_memory(include_bytes!("../assets/branding/SkinStrike.png"))
+                {
+                    let image = image.to_rgba8();
+                    self.logo_texture = Some(ctx.load_texture(
+                        "skinstrike-approved-logo",
+                        ColorImage::from_rgba_unmultiplied(
+                            [image.width() as usize, image.height() as usize],
+                            image.as_raw(),
+                        ),
+                        TextureOptions::LINEAR,
+                    ));
+                }
+            }
             let mut open = self.show_about;
             egui::Window::new("About SkinStrike").open(&mut open).resizable(false)
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+                    if let Some(logo) = &self.logo_texture {
+                        ui.image((logo.id(), egui::vec2(92.0, 92.0)));
+                    }
                     ui.heading("SkinStrike");
                     ui.label("A PWDS Strike app");
                     ui.separator();
