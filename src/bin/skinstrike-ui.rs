@@ -116,11 +116,6 @@ fn main() -> ExitCode {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1440.0, 900.0])
             .with_min_inner_size([960.0, 620.0]),
-        renderer: if capture.is_some() {
-            eframe::Renderer::Glow
-        } else {
-            eframe::Renderer::Wgpu
-        },
         ..Default::default()
     };
     if let Some((mode, path, source)) = capture {
