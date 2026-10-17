@@ -112,12 +112,16 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let options = eframe::NativeOptions {
+    let mut options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1440.0, 900.0])
             .with_min_inner_size([960.0, 620.0]),
         ..Default::default()
     };
+    #[cfg(target_os = "linux")]
+    if capture.is_some() {
+        options.renderer = eframe::Renderer::Glow;
+    }
     if let Some((mode, path, source)) = capture {
         let mut inner = SkinStrikeApp::default();
         let prepared = if mode == "--capture-library" {

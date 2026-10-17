@@ -1,0 +1,34 @@
+name: Linux native visual capture
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  native-visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Software OpenGL display
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libxkbcommon-dev libxkbcommon-x11-0
+      - name: Build native capture and fixture CLI
+        run: cargo build --locked --features native-ui --bin skinstrike-ui --bin skinstrike -j 2
+      - name: Capture synthetic gallery and editor
+        run: bash scripts/hosted-native-capture.sh
+      - name: Upload app-window PNGs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skinstrike-native-linux-visual
+          path: ${{ runner.temp }}/skinstrike-native-visual/*.png
+          if-no-files-found: warn
+          retention-days: 1
