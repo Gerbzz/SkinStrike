@@ -1,6 +1,8 @@
 name: SkinStrike creator draft verification
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [feature/project-library-2026-10-15]
     paths:
