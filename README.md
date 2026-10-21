@@ -13,6 +13,12 @@
 
 **Explore a finish in layers.**
 
+## 3D foundation candidate
+
+The primary 3D development candidate is now the preserved full SubCraft 0.1.7 app at `foundation/subcraft`, with explicit entry point `./SkinStrike-3D.ps1`. Run `./SkinStrike-3D.ps1 -Action Info` to inspect its exact source, feature and executable path without building or launching. See [candidate provenance, retained features and acceptance gates](docs/FOUNDATION_CANDIDATE.md).
+
+**Source candidate only:** it has not been built or launched locally. Builds wait for the reserved CAD slot; runtime checks follow Windows policy. Existing root Cargo commands, source, projects and screenshots below belong to the preserved **legacy 2D editor**. No executable or editable project was replaced or converted. The 3D entry point never falls back to that editor.
+
 SkinStrike lets CS2 creators compose a finish from a base PNG, color, positioned artwork, and hand-painted strokes. Keep an editable project in a local collection, then export a full-resolution PNG for review.
 
 ## Highlights
@@ -61,7 +67,7 @@ The startup window shows the approved SkinStrike logo, a restrained PWDS credit,
 
 Material intent records a target finish-style note for the artist; it does not change pixels or generate a CS2 material. Valve's [Weapon Finishes Guide](https://www.counter-strike.net/workshop/workshopfinishes/) describes style-dependent alpha meanings, and [Workshop Resources](https://www.counter-strike.net/workshop/workshopresources) lists official UV sheets and models. No Valve assets are bundled here. Check actual style, UV placement, wear, shading, and weapon appearance in CS2 Workshop Tools.
 
-## Build and try it
+## Legacy 2D build and try it
 
 Use Windows and Rust 1.89 or newer. The first-party desktop app uses egui/eframe; image decoding and PNG writing use Rust libraries. Project saves coordinate through a persistent sibling `.<project-filename>.skinstrike-save.lock` file; keep it in place so participating saves to the same path share an OS lock. Other editors do not participate in this protocol.
 
