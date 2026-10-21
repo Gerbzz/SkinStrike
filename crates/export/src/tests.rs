@@ -8,6 +8,168 @@ use super::*;
 
 const RES: u32 = 128;
 
+// These regressions are source-only until managed execution is available.
+#[cfg(not(target_arch = "wasm32"))]
+mod directory_safety {
+    use super::*;
+
+    #[test]
+    fn existing_output_is_preserved_before_any_map_is_written() {
+        let dir = tempfile::tempdir().unwrap();
+        let mesh = primitives::plane(2.0, 1);
+        let ch = channels();
+        let sets = [ExportTextureSet { name: "Body", material_slot: 0, channels: &ch, mesh_maps: None }];
+        // Height is last: preflight must reject this before publishing BaseColor.
+        let destination = dir.path().join("M_Body_Height.png");
+        std::fs::write(&destination, b"existing artwork").unwrap();
+
+        let error = export(&mesh, "M", &sets, &ExportSettings::default(), dir.path()).unwrap_err();
+
+        assert!(matches!(error, ExportError::ExistingOutput(_)), "{error}");
+        assert_eq!(std::fs::read(&destination).unwrap(), b"existing artwork");
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn existing_output_with_different_case_is_preserved() {
+        let dir = tempfile::tempdir().unwrap();
+        let mesh = primitives::plane(2.0, 1);
+        let ch = channels();
+        let sets = [ExportTextureSet { name: "Body", material_slot: 0, channels: &ch, mesh_maps: None }];
+        let destination = dir.path().join("m_body_height.PNG");
+        std::fs::write(&destination, b"case variant").unwrap();
+
+        let error = export(&mesh, "M", &sets, &ExportSettings::default(), dir.path()).unwrap_err();
+
+        assert!(matches!(error, ExportError::ExistingOutput(_)), "{error}");
+        assert_eq!(std::fs::read(&destination).unwrap(), b"case variant");
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn existing_output_directory_is_not_replaced() {
+        let dir = tempfile::tempdir().unwrap();
+        let mesh = primitives::plane(2.0, 1);
+        let ch = channels();
+        let sets = [ExportTextureSet { name: "Body", material_slot: 0, channels: &ch, mesh_maps: None }];
+        let destination = dir.path().join("M_Body_Height.png");
+        std::fs::create_dir(&destination).unwrap();
+        std::fs::write(destination.join("keep"), b"inside").unwrap();
+
+        assert!(matches!(
+            export(&mesh, "M", &sets, &ExportSettings::default(), dir.path()),
+            Err(ExportError::ExistingOutput(_))
+        ));
+        assert_eq!(std::fs::read(destination.join("keep")).unwrap(), b"inside");
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn dangling_output_symlink_is_preserved() {
+        let dir = tempfile::tempdir().unwrap();
+        let mesh = primitives::plane(2.0, 1);
+        let ch = channels();
+        let sets = [ExportTextureSet { name: "Body", material_slot: 0, channels: &ch, mesh_maps: None }];
+        let destination = dir.path().join("M_Body_Height.png");
+        let missing = dir.path().join("missing");
+        std::os::unix::fs::symlink(&missing, &destination).unwrap();
+
+        assert!(matches!(
+            export(&mesh, "M", &sets, &ExportSettings::default(), dir.path()),
+            Err(ExportError::ExistingOutput(_))
+        ));
+        assert_eq!(std::fs::read_link(&destination).unwrap(), missing);
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn colliding_set_names_are_rejected_before_creating_the_export_folder() {
+        let parent = tempfile::tempdir().unwrap();
+        let mesh = primitives::plane(2.0, 1);
+        let ch = channels();
+        for names in [["Same", "Same"], ["Body Set", "Body_Set"], ["Body", "body"], ["Straße", "STRASSE"]] {
+            let dir = parent.path().join("outputs");
+            let sets = names.map(|name| ExportTextureSet { name, material_slot: 0, channels: &ch, mesh_maps: None });
+
+            let error = export(&mesh, "M", &sets, &ExportSettings::default(), &dir).unwrap_err();
+
+            assert!(matches!(error, ExportError::DuplicateOutput(_)), "{names:?}: {error}");
+            assert!(!dir.exists(), "invalid plans must not create the export folder");
+        }
+    }
+
+    #[test]
+    fn duplicate_template_maps_are_rejected_before_export() {
+        let parent = tempfile::tempdir().unwrap();
+        let dir = parent.path().join("outputs");
+        let mesh = primitives::plane(2.0, 1);
+        let ch = channels();
+        let sets = [ExportTextureSet { name: "Body", material_slot: 0, channels: &ch, mesh_maps: None }];
+        let mut settings = ExportSettings::default();
+        settings.template.maps.push(settings.template.maps[0].clone());
+
+        assert!(matches!(export(&mesh, "M", &sets, &settings, &dir), Err(ExportError::DuplicateOutput(_))));
+        assert!(!dir.exists());
+    }
+
+    #[test]
+    fn unsafe_template_names_are_rejected_before_export() {
+        let parent = tempfile::tempdir().unwrap();
+        let mesh = primitives::plane(2.0, 1);
+        let ch = channels();
+        let sets = [ExportTextureSet { name: "Body", material_slot: 0, channels: &ch, mesh_maps: None }];
+        let long_suffix = "x".repeat(260);
+        for suffix in ["../outside", "..\\outside", "C:stream", "map?", "map\0", "map\n", "map|", "map*", "map<", "map>", "map\"", long_suffix.as_str()] {
+            let dir = parent.path().join("outputs");
+            let mut settings = ExportSettings::default();
+            settings.template.maps[0].suffix = suffix.into();
+
+            let error = export(&mesh, "M", &sets, &settings, &dir).unwrap_err();
+
+            assert!(matches!(error, ExportError::UnsafeOutput(_)), "{suffix:?}: {error}");
+            assert!(!dir.exists());
+        }
+    }
+
+    #[test]
+    fn publication_does_not_replace_a_file_created_after_preflight() {
+        let dir = tempfile::tempdir().unwrap();
+        let name = "M_Body_BaseColor.png";
+        let names = [name.to_string()];
+        preflight_directory(dir.path(), &names).unwrap();
+        let staged = stage_output(dir.path(), b"new encoded map").unwrap();
+        let temporary_path = staged.path().to_path_buf();
+        let destination = dir.path().join(name);
+        std::fs::write(&destination, b"concurrent artwork").unwrap();
+
+        assert!(publish_output(staged, &destination).is_err());
+
+        assert_eq!(std::fs::read(&destination).unwrap(), b"concurrent artwork");
+        assert!(!temporary_path.exists(), "failed publication cleans up its temporary file");
+    }
+
+    #[test]
+    fn staging_is_unique_and_publication_preserves_complete_bytes() {
+        let dir = tempfile::tempdir().unwrap();
+        let first = stage_output(dir.path(), b"first complete map").unwrap();
+        let second = stage_output(dir.path(), b"second complete map").unwrap();
+        assert_ne!(first.path(), second.path());
+        assert_eq!(first.path().parent(), Some(dir.path()));
+        let first_path = first.path().to_path_buf();
+        let second_path = second.path().to_path_buf();
+        let destination = dir.path().join("M_Body_BaseColor.png");
+
+        publish_output(first, &destination).unwrap();
+        drop(second);
+
+        assert_eq!(std::fs::read(&destination).unwrap(), b"first complete map");
+        assert!(!first_path.exists());
+        assert!(!second_path.exists());
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+}
+
 #[test]
 fn archive_contains_all_ten_maps_identical_to_directory_export() {
     use std::io::Read;
@@ -33,6 +195,14 @@ fn archive_rejects_colliding_and_unsafe_output_names() {
     let mesh=primitives::plane(2.0,1);let ch=channels();let set=||ExportTextureSet {name:"Same",material_slot:0,channels:&ch,mesh_maps:None};
     assert!(archive(&mesh,"M",&[set(),set()],&ExportSettings::default()).is_err());
     let mut settings=ExportSettings::default();settings.template.maps[0].suffix="../outside".into();assert!(archive(&mesh,"M",&[set()],&settings).is_err());
+}
+
+#[test]
+fn archive_rejects_case_aliases_in_output_names() {
+    let mesh = primitives::plane(2.0, 1);
+    let ch = channels();
+    let sets = ["Body", "body"].map(|name| ExportTextureSet { name, material_slot: 0, channels: &ch, mesh_maps: None });
+    assert!(matches!(archive(&mesh, "M", &sets, &ExportSettings::default()), Err(ExportError::DuplicateOutput(_))));
 }
 
 fn channels() -> BTreeMap<ChannelKind, TiledImage> {
@@ -108,12 +278,14 @@ fn packed_maps_and_normal_formats() {
     assert!((dx[1] - (1.0 - 0.8)).abs() < 2.0 / 255.0, "DirectX flips green: {dx:?}");
 
     let unity = ExportSettings { template: ExportTemplate::unity_hdrp(), ..ExportSettings::default() };
-    export(&mesh, "M", &sets, &unity, &dir).unwrap();
-    let mask = px(&dir.join("M_P_MaskMap.png"), 5, 5);
+    let unity_dir = dir.join("unity");
+    export(&mesh, "M", &sets, &unity, &unity_dir).unwrap();
+    let mask = px(&unity_dir.join("M_P_MaskMap.png"), 5, 5);
     assert!((mask[0] - 1.0).abs() < 1e-3 && mask[2] == 0.0 && (mask[3] - 0.75).abs() < 1.0 / 255.0, "smoothness = 1 - roughness: {mask:?}");
     let gl = ExportSettings { template: ExportTemplate::gltf(), ..ExportSettings::default() };
-    export(&mesh, "M", &sets, &gl, &dir).unwrap();
-    let n = px(&dir.join("M_P_Normal.png"), 5, 5);
+    let gltf_dir = dir.join("gltf");
+    export(&mesh, "M", &sets, &gl, &gltf_dir).unwrap();
+    let n = px(&gltf_dir.join("M_P_Normal.png"), 5, 5);
     assert!((n[1] - 0.8).abs() < 2.0 / 255.0, "OpenGL keeps green: {n:?}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
@@ -135,8 +307,9 @@ fn height_slopes_tilt_the_exported_normal() {
     let n = px(&dir.join("M_P_Normal.png"), 64, 64);
     assert!(n[0] < 0.45, "slope up in +u tilts the normal toward -u: {n:?}");
     let off = ExportSettings { height_to_normal: 0.0, ..ExportSettings::default() };
-    export(&mesh, "M", &sets, &off, &dir).unwrap();
-    let n = px(&dir.join("M_P_Normal.png"), 64, 64);
+    let off_dir = dir.join("height-disabled");
+    export(&mesh, "M", &sets, &off, &off_dir).unwrap();
+    let n = px(&off_dir.join("M_P_Normal.png"), 64, 64);
     assert!((n[0] - 0.5).abs() < 2.0 / 255.0, "height-to-normal disabled: {n:?}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
@@ -161,8 +334,9 @@ fn padding_fills_the_gutter_from_islands() {
     let only_rough = ExportTemplate { name: "R".into(), maps: vec![ExportTemplate::pbr_metal_rough().maps[1].clone()] };
     for (padding, expect) in [(Padding::None, 0.0), (Padding::Infinite, 1.0)] {
         let s = ExportSettings { template: only_rough.clone(), padding, ..ExportSettings::default() };
-        export(&mesh, "M", &sets, &s, &dir).unwrap();
-        let v = px(&dir.join("M_C_Roughness.png"), gx, gy)[0];
+        let variant_dir = dir.join(format!("{padding:?}"));
+        export(&mesh, "M", &sets, &s, &variant_dir).unwrap();
+        let v = px(&variant_dir.join("M_C_Roughness.png"), gx, gy)[0];
         assert_eq!(v, expect, "{padding:?} gutter texel ({gx},{gy})");
     }
     std::fs::remove_dir_all(&dir).unwrap();

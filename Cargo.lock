@@ -3661,6 +3661,7 @@ dependencies = [
  "subcraft-doc",
  "subcraft-image",
  "subcraft-mesh",
+ "tempfile",
  "thiserror 2.0.21",
  "zip",
 ]

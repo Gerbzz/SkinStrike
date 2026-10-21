@@ -7,6 +7,11 @@
 //! EXR. Data channels are never color-transformed.
 
 pub mod template;
+mod destination;
+
+use destination::validate_names;
+#[cfg(not(target_arch = "wasm32"))]
+use destination::{preflight_directory, publish_output, stage_output};
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -76,6 +81,12 @@ pub enum ExportError {
     Write(PathBuf, String),
     #[error("could not create texture archive: {0}")]
     Archive(String),
+    #[error("unsafe output filename: {0:?}")]
+    UnsafeOutput(String),
+    #[error("duplicate output filename (including case aliases): {0}")]
+    DuplicateOutput(String),
+    #[error("output already exists; choose a new export folder: {0}")]
+    ExistingOutput(PathBuf),
 }
 
 /// File-system friendly name part.
@@ -99,6 +110,12 @@ pub fn plan(mesh_name: &str, sets: &[ExportTextureSet], settings: &ExportSetting
         }
     }
     out
+}
+
+fn validated_names(mesh_name: &str, sets: &[ExportTextureSet], settings: &ExportSettings) -> Result<Vec<String>, ExportError> {
+    let names: Vec<String> = plan(mesh_name, sets, settings).into_iter().map(|(_, name)| name).collect();
+    validate_names(&names)?;
+    Ok(names)
 }
 
 /// Dense channel data of one texture set (lazily converted, shared by all maps).
@@ -209,11 +226,27 @@ pub fn coverage(mesh: &Mesh, material_slot: u32, size: u32) -> Vec<bool> {
 }
 
 /// Write every applicable map of every texture set into `dir`. Returns the written files.
+///
+/// Native exports preflight the entire plan, then stage each complete map beside its
+/// destination and publish without replacement, including when a file appears after
+/// preflight. This is not a multi-file transaction: maps published before a later
+/// error remain. Browser callers retain the virtual-file/download-sink behavior.
 pub fn export(mesh: &Mesh, mesh_name: &str, sets: &[ExportTextureSet], settings: &ExportSettings, dir: &Path) -> Result<Vec<PathBuf>, ExportError> {
+    let names = validated_names(mesh_name, sets, settings)?;
     subcraft_core::vfs::create_dir_all(dir).map_err(|e| ExportError::Folder(dir.to_path_buf(), e))?;
+    #[cfg(not(target_arch = "wasm32"))]
+    preflight_directory(dir, &names)?;
+    #[cfg(target_arch = "wasm32")]
+    let _ = names;
     let mut written = Vec::new();
     render_maps(mesh,mesh_name,sets,settings,|name,bytes| {
         let path=dir.join(name);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let staged = stage_output(dir, bytes).map_err(|e| ExportError::Write(path.clone(), e.to_string()))?;
+            publish_output(staged, &path)?;
+        }
+        #[cfg(target_arch = "wasm32")]
         subcraft_core::vfs::write(&path,bytes).map_err(|e|ExportError::Write(path.clone(),e.to_string()))?;
         written.push(path);Ok(())
     })?;
@@ -225,11 +258,10 @@ pub struct TextureArchive {pub name: String,pub files: usize,pub bytes: Vec<u8>}
 
 pub fn archive(mesh: &Mesh, mesh_name: &str, sets: &[ExportTextureSet], settings: &ExportSettings) -> Result<TextureArchive,ExportError> {
     use std::io::{Cursor,Write};
+    validated_names(mesh_name, sets, settings)?;
     let mut zip=zip::ZipWriter::new(Cursor::new(Vec::new()));
-    let mut names=std::collections::HashSet::new();
     let options=zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
     let files=render_maps(mesh,mesh_name,sets,settings,|name,bytes| {
-        if name.contains(['/', '\\']) || !names.insert(name.to_string()) {return Err(ExportError::Archive(format!("invalid or duplicate output name: {name}")));}
         zip.start_file(name,options).map_err(|e|ExportError::Archive(e.to_string()))?;
         zip.write_all(bytes).map_err(|e|ExportError::Archive(e.to_string()))
     })?;
