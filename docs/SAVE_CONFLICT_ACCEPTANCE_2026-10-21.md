@@ -109,10 +109,13 @@ well above the 20 GiB reserve. Current SkinStrike projects and branding stay in
 place. The work may be preserved in an explicitly unverified **local commit**;
 no push or integration is implied.
 
-## 3D foundation direction
-
-No custom mesh importer or schema migration was implemented. The user approved
-rechecking the complete [Aalzard/SubCraft](https://github.com/Aalzard/subcraft)
-app as a foundation. See [the pinned-source comparison](SUBCRAFT_FOUNDATION_RECHECK_2026-10-21.md).
 The save fix is data integrity work, not a claim of 3D painting progress or
 game-ready output.
+
+## Publication verification
+
+The preceding results record the Room PC checks before publication. Hosted CI
+checks out and verifies the exact PR head. Windows runs the full default and
+native-UI suites plus executable builds; Linux additionally executes the save
+conflict regressions before its existing native capture. Hosted results will be
+recorded on the PR and do not clear the Room Application Control denial above.

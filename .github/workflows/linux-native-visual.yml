@@ -15,9 +15,19 @@ jobs:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_DEV_DEBUG: '0'
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source head
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          echo "Testing exact source $EXPECTED_HEAD"
       - uses: dtolnay/rust-toolchain@stable
+      - name: Test project save conflicts on Linux
+        run: cargo test --locked --test project_save_conflicts -j 2
       - name: Software OpenGL display
         run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libxkbcommon-dev libxkbcommon-x11-0
       - name: Build native capture and fixture CLI
