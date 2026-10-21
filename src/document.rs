@@ -2,6 +2,7 @@ use image::{DynamicImage, ImageFormat, ImageReader, Rgba, RgbaImage};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs::{File, OpenOptions};
 use std::io::{Cursor, Read, Write};
 use std::path::Path;
 use std::sync::Arc;
@@ -589,16 +590,33 @@ struct LegacyDocument {
     layers: Vec<LegacyColorLayer>,
 }
 
-pub fn load_document(path: &Path) -> Result<FinishDocument, String> {
-    let length = std::fs::metadata(path)
+fn read_project_bytes(path: &Path) -> Result<Vec<u8>, String> {
+    let file = File::open(path).map_err(|e| format!("Cannot open project: {e}"))?;
+    let length = file
+        .metadata()
         .map_err(|e| format!("Cannot open project: {e}"))?
         .len();
     if length > MAX_PROJECT_BYTES {
         return Err("Project exceeds 256 MiB limit".into());
     }
-    let bytes = std::fs::read(path).map_err(|e| format!("Cannot open project: {e}"))?;
+    // The file can grow after the metadata check. Bound the read itself too.
+    let mut bytes = Vec::new();
+    file.take(MAX_PROJECT_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("Cannot open project: {e}"))?;
+    if bytes.len() as u64 > MAX_PROJECT_BYTES {
+        return Err("Project exceeds 256 MiB limit".into());
+    }
+    Ok(bytes)
+}
+
+pub fn load_document(path: &Path) -> Result<FinishDocument, String> {
+    decode_document(path, &read_project_bytes(path)?)
+}
+
+fn decode_document(path: &Path, bytes: &[u8]) -> Result<FinishDocument, String> {
     let value: serde_json::Value =
-        serde_json::from_slice(&bytes).map_err(|e| format!("Invalid project JSON: {e}"))?;
+        serde_json::from_slice(bytes).map_err(|e| format!("Invalid project JSON: {e}"))?;
     let version = value
         .get("schema_version")
         .and_then(|v| v.as_u64())
@@ -697,6 +715,47 @@ pub fn save_document(
     save_document_with_cancel(document, path, overwrite, &|| false)
 }
 
+// Keep this sidecar inode for future saves. Unlinking it on release would let
+// another process lock a different file at the same name while a waiter holds
+// the original. The file lock serializes participating SkinStrike writers only.
+fn lock_save_destination(path: &Path) -> Result<File, String> {
+    let filename = path.file_name().ok_or("Project filename is missing")?;
+    if filename
+        .to_string_lossy()
+        .to_ascii_lowercase()
+        .ends_with(".skinstrike-save.lock")
+    {
+        return Err("The .skinstrike-save.lock suffix is reserved for project save locks".into());
+    }
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let parent = parent
+        .canonicalize()
+        .map_err(|e| format!("Cannot resolve project folder: {e}"))?;
+    let mut name = std::ffi::OsString::from(".");
+    name.push(filename);
+    name.push(".skinstrike-save.lock");
+    let lock_path = parent.join(name);
+    if let Ok(metadata) = lock_path.symlink_metadata() {
+        if !metadata.is_file() || metadata.file_type().is_symlink() {
+            return Err("Project save lock must be a regular file".into());
+        }
+    }
+    let lock = OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .read(true)
+        .write(true)
+        .open(lock_path)
+        .map_err(|e| format!("Cannot open project save lock: {e}"))?;
+    lock.try_lock().map_err(|e| {
+        format!("Project is already being saved or its save lock is unavailable: {e}")
+    })?;
+    Ok(lock)
+}
+
 pub fn save_document_with_cancel(
     document: &FinishDocument,
     path: &Path,
@@ -710,15 +769,20 @@ pub fn save_document_with_cancel(
     if cancelled() {
         return Err("Operation cancelled".into());
     }
-    if path.exists() {
+    let _save_guard = lock_save_destination(path)?;
+    let previous = if path.exists() {
         if !overwrite {
             return Err("Project already exists; choose another path".into());
         }
-        let existing = load_document(path)?;
+        let bytes = read_project_bytes(path)?;
+        let existing = decode_document(path, &bytes)?;
         if existing.project_id != document.project_id {
             return Err("Destination belongs to a different project".into());
         }
-    }
+        Some(hash(&bytes))
+    } else {
+        None
+    };
     let mut compact = document.clone();
     let mut used = BTreeSet::from(["base".to_string()]);
     if let Some(data) = &compact.alpha_data {
@@ -757,11 +821,24 @@ pub fn save_document_with_cancel(
     if cancelled() {
         return Err("Operation cancelled".into());
     }
-    if overwrite {
+    if let Some(previous) = previous {
+        // Encoding and syncing run in a worker and can take time. Recheck the
+        // destination before replacing it so another writer's work survives.
+        let current = read_project_bytes(path).map_err(|error| {
+            format!("Destination changed or became unavailable while saving; choose another path: {error}")
+        })?;
+        if hash(&current) != previous {
+            return Err("Project changed while saving; reopen it or choose another path".into());
+        }
+        if cancelled() {
+            return Err("Operation cancelled".into());
+        }
         pending
             .persist(path)
             .map_err(|e| format!("Cannot replace project: {}", e.error))?;
     } else {
+        // Permission to replace an existing project does not authorize replacing
+        // a file that appeared after this save started.
         pending
             .persist_noclobber(path)
             .map_err(|e| format!("Cannot create project: {}", e.error))?;
@@ -1834,7 +1911,8 @@ mod cancellation_regressions {
         );
         assert_eq!(calls.get(), 3);
         assert_eq!(std::fs::read(&target).unwrap(), previous);
-        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 2);
+        // Base, project, and the stable save-lock sidecar; no staged temp file.
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 3);
 
         save_document(&doc, &target, true).unwrap();
         let updated = std::fs::read(&target).unwrap();
