@@ -29,6 +29,12 @@ fn main() {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> anyhow::Result<()> {
     let cli: Vec<_> = std::env::args_os().skip(1).collect();
+    #[cfg(feature = "skinstrike-candidate")]
+    {
+        // Validate before logging/recovery or any updater action can touch disk.
+        subcraft_ui::candidate::environment().map_err(|error| anyhow::anyhow!("{error}"))?;
+        subcraft_ui::candidate::validate_arguments(&cli).map_err(|error| anyhow::anyhow!("{error}"))?;
+    }
     if cli.first().is_some_and(|a| a == "--apply-update") {
         let path = cli.get(1).ok_or_else(|| anyhow::anyhow!("Missing update job"))?;
         return subcraft_app::updater::apply_job(std::path::Path::new(path)).map_err(|e| anyhow::anyhow!("{e}"));

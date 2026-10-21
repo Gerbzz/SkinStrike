@@ -126,7 +126,12 @@ impl UiState {
             welcome: Default::default(),
 
             #[cfg(not(target_arch = "wasm32"))]
-            updater: subcraft_app::updater::Updater::new().ok(),
+            updater: {
+                #[cfg(feature = "skinstrike-candidate")]
+                { None }
+                #[cfg(not(feature = "skinstrike-candidate"))]
+                { subcraft_app::updater::Updater::new().ok() }
+            },
             update_notice: false,
             update_button: None,
             parts_kind: subcraft_core::PartKind::Connected,

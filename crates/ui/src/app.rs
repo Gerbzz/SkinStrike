@@ -1003,7 +1003,7 @@ impl eframe::App for SubcraftApp {
             }
             dialogs::run_pending(&mut self.state, action, &ctx, now);
         }
-        let title = dialogs::title(&self.state);
+        let title = dialogs::native_title(&self.state);
         if title != self.state.last_title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
             self.state.last_title = title;

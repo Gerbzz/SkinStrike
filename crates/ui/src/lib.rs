@@ -4,6 +4,8 @@
 //! logic lives in `subcraft-app`.
 
 pub mod app;
+#[cfg(feature = "skinstrike-candidate")]
+pub mod candidate;
 pub mod bug_report;
 mod brush_bar;
 pub mod dialogs;
@@ -30,6 +32,8 @@ pub use app::{LaunchOptions, SubcraftApp, Tab};
 /// Open the main window.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run(options: LaunchOptions) -> eframe::Result {
+    #[cfg(feature = "skinstrike-candidate")]
+    candidate::environment().map_err(|error| eframe::Error::AppCreation(Box::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, error))))?;
     let graphics = graphics::GraphicsUi::load();
     let api = graphics.selected;
     let environment_override = graphics.environment_override;
@@ -47,11 +51,19 @@ pub fn run(options: LaunchOptions) -> eframe::Result {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn run_with_graphics(mut options: LaunchOptions, graphics: graphics::GraphicsUi, api: subcraft_app::graphics::GraphicsApi) -> eframe::Result {
+    #[cfg(feature = "skinstrike-candidate")]
+    let (title, persistence_path) = (
+        candidate::TITLE,
+        Some(candidate::environment().map_err(|error| eframe::Error::AppCreation(Box::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, error))))?.persistence),
+    );
+    #[cfg(not(feature = "skinstrike-candidate"))]
+    let (title, persistence_path) = ("SubCraft", options.screenshot.as_ref()
+        .map(|_| std::env::temp_dir().join(format!("subcraft-screenshot-state-{}", std::process::id()))));
     let wgpu_options = graphics::wgpu_options(api, graphics.environment_override);
     options.graphics_startup = Some(graphics);
     let native = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("SubCraft")
+            .with_title(title)
             .with_icon(std::sync::Arc::new(theme::app_icon()))
             .with_inner_size([1600.0, 940.0])
             .with_min_inner_size([900.0, 560.0]),
@@ -59,13 +71,10 @@ fn run_with_graphics(mut options: LaunchOptions, graphics: graphics::GraphicsUi,
         wgpu_options,
         // Scripted screenshots start from a clean UI state (no remembered scroll positions or
         // window size) and never touch the user's saved settings.
-        persistence_path: options
-            .screenshot
-            .as_ref()
-            .map(|_| std::env::temp_dir().join(format!("subcraft-screenshot-state-{}", std::process::id()))),
+        persistence_path,
         ..Default::default()
     };
-    eframe::run_native("SubCraft", native, Box::new(move |cc| Ok(Box::new(SubcraftApp::new(cc, options)))))
+    eframe::run_native(title, native, Box::new(move |cc| Ok(Box::new(SubcraftApp::new(cc, options)))))
 }
 
 /// Run in a web page, in the `<canvas>` with this id. Files the app writes (projects, exports)
