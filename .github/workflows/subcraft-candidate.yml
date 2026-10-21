@@ -1,0 +1,93 @@
+name: SubCraft candidate verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'foundation/**'
+      - 'SkinStrike-3D.ps1'
+      - 'scripts/verify-foundation-contract.ps1'
+      - '.gitmodules'
+      - '.github/workflows/subcraft-candidate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    name: Candidate gates (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            export_tests: '18'
+            candidate_tests: '4'
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            export_tests: '19'
+            candidate_tests: '5'
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '1'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RAYON_NUM_THREADS: '1'
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      VERIFY_TARGET: ${{ matrix.target }}
+      EXPORT_TEST_COUNT: ${{ matrix.export_tests }}
+      CANDIDATE_TEST_COUNT: ${{ matrix.candidate_tests }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Check exact source, provenance and launcher refusals
+        run: |
+          New-Item -ItemType Directory -Force .candidate/verification | Out-Null
+          ./scripts/verify-foundation-contract.ps1 -ExpectedHead $env:EXPECTED_HEAD | Tee-Object .candidate/verification/contract.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Linux native link dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-0 mesa-vulkan-drivers
+      - name: Native export regression suite
+        run: |
+          cargo test --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft-export --lib --target $env:VERIFY_TARGET --target-dir .candidate/target-subcraft -j 1 -- --test-threads=1 2>&1 | Tee-Object .candidate/verification/export.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ((Get-Content .candidate/verification/export.log -Raw) -notmatch "test result: ok\. $env:EXPORT_TEST_COUNT passed; 0 failed;") { throw 'Expected export regression count did not execute' }
+      - name: Candidate isolation, updater and title tests
+        run: |
+          cargo test --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft-ui --features skinstrike-candidate --lib candidate::tests:: --target $env:VERIFY_TARGET --target-dir .candidate/target-subcraft -j 1 -- --test-threads=1 2>&1 | Tee-Object .candidate/verification/candidate-boundary.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ((Get-Content .candidate/verification/candidate-boundary.log -Raw) -notmatch "test result: ok\. $env:CANDIDATE_TEST_COUNT passed; 0 failed;") { throw 'Expected candidate boundary count did not execute' }
+      - name: Type-check candidate application entry
+        run: |
+          cargo check --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft --bin subcraft --features skinstrike-candidate --target $env:VERIFY_TARGET --target-dir .candidate/target-subcraft -j 1 2>&1 | Tee-Object .candidate/verification/candidate-entry.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Type-check preserved upstream feature-off entry
+        run: |
+          cargo check --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft --bin subcraft --target $env:VERIFY_TARGET --target-dir .candidate/target-subcraft -j 1 2>&1 | Tee-Object .candidate/verification/upstream-entry.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve source-bound verification evidence
+        if: always()
+        run: |
+          New-Item -ItemType Directory -Force .candidate/verification | Out-Null
+          @("parent=$env:EXPECTED_HEAD", "actual=$(git rev-parse HEAD)", "candidate=$(git -C foundation/subcraft rev-parse HEAD)", "target=$env:VERIFY_TARGET", 'Hosted gates do not establish Room or desktop/CS2 acceptance.') | Set-Content .candidate/verification/source.txt
+          Get-ChildItem .candidate/verification -File | Get-FileHash -Algorithm SHA256 | Select-Object @{Name='File';Expression={Split-Path $_.Path -Leaf}},Hash | ConvertTo-Json | Set-Content .candidate/verification/SHA256.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: skinstrike-foundation-${{ matrix.os }}-${{ github.event.pull_request.head.sha }}
+          path: .candidate/verification/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

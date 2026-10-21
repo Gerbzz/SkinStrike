@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "purpose": "Reversible SkinStrike 3D foundation integration candidate",
+  "upstream_url": "https://github.com/Aalzard/subcraft.git",
+  "upstream_version": "0.1.7",
+  "upstream_commit": "71e49fde7e4e1dba188a6589c9e5a139d1e3d9d5",
+  "candidate_commit": "7958dc640982f014e56a4f9df81c2ffc0f1f0aee",
+  "source_repository_url": "https://github.com/Gerbzz/SkinStrike.git",
+  "source_branch": "foundation/subcraft-source-2026-10-21",
+  "source_path": "foundation/subcraft",
+  "manifest_path": "foundation/subcraft/Cargo.toml",
+  "package": "subcraft",
+  "binary": "subcraft",
+  "target": "x86_64-pc-windows-msvc",
+  "features": ["skinstrike-candidate"],
+  "entry_point": "SkinStrike-3D.ps1",
+  "legacy_manifest": "Cargo.toml",
+  "legacy_binary": "skinstrike-ui",
+  "runtime_status": "Not built or launched locally; native verification pending",
+  "project_boundary": "Native .subcraft schema 1-5; existing SkinStrike JSON stays with the legacy editor; no automatic conversion"
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "repository": "https://github.com/Aalzard/subcraft.git",
+    "version": "0.1.7",
+    "commit": "71e49fde7e4e1dba188a6589c9e5a139d1e3d9d5",
+    "git_tree": "9636c6254871d958db8ba91a57b60a7fc722df6d",
+    "tracked_files_at_baseline": 478
+  },
+  "local_candidate": {
+    "path": "foundation/subcraft",
+    "branch": "skinstrike/foundation-candidate-2026-10-21",
+    "commit": "7958dc640982f014e56a4f9df81c2ffc0f1f0aee",
+    "export_repair_commit": "afd85b6e7e84dcc60a4e152efb1528ac9da24798",
+    "retains_upstream_ancestry": true,
+    "publicly_available": true,
+    "source_repository": "https://github.com/Gerbzz/SkinStrike.git",
+    "source_branch": "foundation/subcraft-source-2026-10-21",
+    "upstream_baseline_branch": "foundation/upstream-subcraft-0.1.7",
+    "handoff": "The existing SkinStrike repository preserves complete source history on separate source branches. Parent .gitmodules uses that fetchable mirror; original upstream provenance remains above. Offline bundles remain valid historical snapshots."
+  },
+  "preservation": {
+    "legacy_skinstrike_commit_before_integration": "058c634af6f4d29a8e8ab64ee296d441f3ef721c",
+    "legacy_source_and_branding_changed_by_integration": false,
+    "user_projects_converted_or_deleted": false,
+    "existing_executable_replaced": false,
+    "upstream_assets_or_license_files_modified": false,
+    "upstream_license_expression": "MIT OR Apache-2.0",
+    "font_notices": ["Inter SIL OFL 1.1", "Phosphor MIT"],
+    "starter_pack": "Aalzard-supplied CC0 1.0; original credits retained"
+  },
+  "verification": {
+    "independent_source_review": "completed; no remaining blocker for local source commits",
+    "rust_parsing": "passed; not compilation",
+    "cargo_metadata_locked_offline_no_deps": "passed with candidate feature",
+    "powershell_parser_and_info": "passed",
+    "candidate_tests_or_compilation": "subcraft-export compiled and executed: 18 passed; candidate UI boundary compilation blocked by Windows Application Control 4551 at serde_core build script, never executed; no retry",
+    "candidate_native_launch": "not performed",
+    "new_export_tests": "10 source functions; 9 executed and passed on Windows within 18-test suite; Unix symlink case excluded",
+    "new_candidate_tests": "5 source functions including Unix-only case; UI test binary not compiled or executed because dependency build script was denied",
+    "native_verification_record": "docs/verification/2026-10-21-subcraft-native-gates.md",
+    "hosted_candidate_verification": "pending exact-head draft PR CI; hosted checks do not clear Room policy or desktop/CS2 acceptance",
+    "build_slot": "released at 2026-10-21T08:01:32Z; no compiler processes; 2056.92 GiB free",
+    "legacy_save_test_block": "Windows Application Control error 4551; executable never executed and not retried",
+    "historical_37_tests": "Predates revised legacy save code; does not validate this candidate",
+    "screenshot_library_id": null
+  }
+}
