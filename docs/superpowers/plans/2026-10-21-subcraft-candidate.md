@@ -53,3 +53,14 @@
 - [x] Record project-format boundary, pending CS2/safety gates and exact next verification command.
 - [x] Confirm old assets/source and all upstream license/asset blobs remain unchanged.
 - [x] Commit root submodule pin and deliver source bundles; no publication.
+
+### Task 4: Coordinated native verification
+
+- [x] Receive CAD slot release; verify exact source identity and host process/disk state.
+- [x] Run single-job native export suite: 18 compiled/executed passes on `7958dc6`.
+- [x] Attempt filtered candidate UI boundary suite; stop at Windows Application Control 4551 denial of the `serde_core` build script, never executed.
+- [x] Preserve logs/hashes, record compiled versus executed scope and release build slot.
+- [ ] Candidate UI compilation/tests after normal Windows execution approval and new slot coordination; no retry while denied.
+- [ ] Desktop candidate build and real native GLB acceptance; no screenshot or app-runtime claim yet.
+
+Exact evidence: `docs/verification/2026-10-21-subcraft-native-gates.md`.

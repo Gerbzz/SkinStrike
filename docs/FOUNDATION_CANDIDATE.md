@@ -100,7 +100,12 @@ Ten export regression functions were added, including a native publication-race
 case using real staged/destination files and an archive collision case. Existing
 pixel tests that intentionally reused names now use separate variant folders.
 Candidate isolation/update/title test source was also added (five cases,
-including a Unix symlink case). **None has been compiled or executed here.**
+including a Unix symlink case). On 2026-10-21 the native export suite compiled
+and executed: **18 passed, 0 failed**, including nine of the ten new regressions
+(the remaining case is Unix-only). The candidate UI test build was blocked by
+Windows Application Control 4551 at a dependency build script, before the UI
+test binary compiled or ran. It was not retried. See the [immutable source,
+commands, executable hashes and logs](verification/2026-10-21-subcraft-native-gates.md).
 
 ## Non-destructive data boundary
 
@@ -126,18 +131,28 @@ behavior. Prior upstream CI success applies to the pinned **unmodified** source,
 not our local changes. The old SkinStrike 37-test pass does not validate these
 changes or its later `8e85a9b` save implementation.
 
-Smallest next gate, **after CAD releases the build slot and managed Windows
-policy permits the resulting test executable**, is a single-job native export
-test run:
+The single-job native export gate completed successfully after CAD released the
+build slot:
 
 ```powershell
-cargo test --locked --offline --manifest-path foundation/subcraft/Cargo.toml -p subcraft-export --lib --target x86_64-pc-windows-msvc --target-dir .candidate/target-subcraft -j 1
+cargo test --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft-export --lib --target x86_64-pc-windows-msvc --target-dir .candidate/target-subcraft -j 1 -- --test-threads=1
 ```
 
-Use no incremental compilation/debug symbols as in the entry script. A first
-dependency build may still be substantial; do not run it in CAD's reserved slot.
-Then type-check/test the candidate UI feature and build through the explicit
-entry point. Native acceptance uses a licensed synthetic GLB: orbit/pick, paint
+The initial offline attempt lacked a locked dependency index entry; normal
+locked downloads enabled the passing run. No lockfile changed. The following
+candidate UI feature test gate stopped at the first Windows policy denial:
+
+```powershell
+cargo test --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft-ui --features skinstrike-candidate --lib candidate::tests:: --target x86_64-pc-windows-msvc --target-dir .candidate/target-subcraft -j 1 -- --test-threads=1
+```
+
+Its exact denied `serde_core` build script and hash are in the verification
+record. Candidate UI type/tests remain pending Windows execution approval by
+the responsible policy owner; do not retry while denied. The heavy-build slot
+is released, with no compiler processes remaining and 2,056.92 GiB free.
+Any later build needs fresh slot coordination, no incremental/debug symbols,
+and the 20 GiB reserve. A desktop build through the explicit entry point follows
+the boundary gate. Native acceptance uses a licensed synthetic GLB: orbit/pick, paint
 across a seam, layers/masks, undo/redo, portable save/reopen, export, cancellation
 and isolated state inspection. Only an actual successful native capture can be
 delivered as a screenshot, with its Library ID and exact build evidence.
@@ -150,7 +165,7 @@ Verify any Valve material/texture round trip separately. Those gates remain open
 
 The previously compiled legacy save test executable was blocked by Windows
 Application Control (4551) before execution. It has not been retried, renamed,
-relocated or bypassed. No heavy build, native app run, new screenshot, installer,
-credential change or publication occurred. Existing branding assets remain
+relocated or bypassed. The scoped test builds above occurred; no native app run,
+new screenshot, installer, credential change or publication occurred. Existing branding assets remain
 unchanged. MIT/Apache upstream notices, contributor attribution, Inter OFL,
 Phosphor MIT and starter-pack CC0 credits are retained in the full submodule.
