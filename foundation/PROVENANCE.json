@@ -13,8 +13,11 @@
     "commit": "7958dc640982f014e56a4f9df81c2ffc0f1f0aee",
     "export_repair_commit": "afd85b6e7e84dcc60a4e152efb1528ac9da24798",
     "retains_upstream_ancestry": true,
-    "publicly_available": false,
-    "handoff": "Parent and submodule Git bundles are required for these local-only commits; the upstream public URL does not contain them."
+    "publicly_available": true,
+    "source_repository": "https://github.com/Gerbzz/SkinStrike.git",
+    "source_branch": "foundation/subcraft-source-2026-10-21",
+    "upstream_baseline_branch": "foundation/upstream-subcraft-0.1.7",
+    "handoff": "The existing SkinStrike repository preserves complete source history on separate source branches. Parent .gitmodules uses that fetchable mirror; original upstream provenance remains above. Offline bundles remain valid historical snapshots."
   },
   "preservation": {
     "legacy_skinstrike_commit_before_integration": "058c634af6f4d29a8e8ab64ee296d441f3ef721c",
@@ -36,6 +39,7 @@
     "new_export_tests": "10 source functions; 9 executed and passed on Windows within 18-test suite; Unix symlink case excluded",
     "new_candidate_tests": "5 source functions including Unix-only case; UI test binary not compiled or executed because dependency build script was denied",
     "native_verification_record": "docs/verification/2026-10-21-subcraft-native-gates.md",
+    "hosted_candidate_verification": "pending exact-head draft PR CI; hosted checks do not clear Room policy or desktop/CS2 acceptance",
     "build_slot": "released at 2026-10-21T08:01:32Z; no compiler processes; 2056.92 GiB free",
     "legacy_save_test_block": "Windows Application Control error 4551; executable never executed and not retried",
     "historical_37_tests": "Predates revised legacy save code; does not validate this candidate",

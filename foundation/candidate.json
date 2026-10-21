@@ -5,6 +5,8 @@
   "upstream_version": "0.1.7",
   "upstream_commit": "71e49fde7e4e1dba188a6589c9e5a139d1e3d9d5",
   "candidate_commit": "7958dc640982f014e56a4f9df81c2ffc0f1f0aee",
+  "source_repository_url": "https://github.com/Gerbzz/SkinStrike.git",
+  "source_branch": "foundation/subcraft-source-2026-10-21",
   "source_path": "foundation/subcraft",
   "manifest_path": "foundation/subcraft/Cargo.toml",
   "package": "subcraft",

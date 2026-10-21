@@ -10,7 +10,7 @@ It has not been built or launched locally. No existing executable was replaced.
 | Entry | Source and behavior |
 | --- | --- |
 | `./SkinStrike-3D.ps1 -Action Info` | Default/read-only candidate identity: `foundation/subcraft/Cargo.toml`, package/bin `subcraft`, feature `skinstrike-candidate`, target `x86_64-pc-windows-msvc`. Does not build or launch. |
-| `./SkinStrike-3D.ps1 -Action Build -BuildSlotConfirmed` | Only after CAD releases the heavy-build slot. Builds the exact submodule manifest/features/target into `.candidate/target-subcraft`; single job, no incremental/debug symbols. Requires 40 GiB free for headroom over the 20 GiB reserve. |
+| `./SkinStrike-3D.ps1 -Action Build -BuildSlotConfirmed` | Only after the current owner releases the shared heavy-build slot. Builds the exact submodule manifest/features/target into `.candidate/target-subcraft`; single job, no incremental/debug symbols. Requires 40 GiB free for headroom over the 20 GiB reserve. |
 | `./SkinStrike-3D.ps1 -Action Run -AppArgs @('--demo')` | Only once Windows policy permits native execution and a coordinated build succeeds. Requires a clean committed submodule matching the parent gitlink, the exact Cargo-reported binary and features, and matching source/entry/contract/binary hashes in a build receipt. Never chooses another executable or retries a failed launch. |
 | Root `cargo run --features native-ui --bin skinstrike-ui` | Preserved **legacy 2D SkinStrike**, not the 3D foundation. Root Cargo was not silently redirected. Existing projects remain supported here. |
 
@@ -26,9 +26,9 @@ compiler artifact; an unrelated old executable cannot earn a fresh receipt.
 An inherited Cargo build-target setting cannot redirect the pinned target.
 There is **no build receipt or candidate executable from this session**.
 
-## Source ancestry and local handoff
+## Source ancestry and publication
 
-`foundation/subcraft` is a full-source Git submodule rooted at
+`foundation/subcraft` is a full-source Git submodule derived from
 `https://github.com/Aalzard/subcraft.git`, baseline
 `71e49fde7e4e1dba188a6589c9e5a139d1e3d9d5` / 0.1.7. The baseline contains 478
 tracked files. The local branch is
@@ -36,11 +36,20 @@ tracked files. The local branch is
 descend from that exact baseline. The parent repository pins the reviewed local
 candidate commit, and `foundation/candidate.json` records the build contract.
 
-This is local-only work. The upstream public URL does **not** contain our local
-descendant commits. A fresh recursive clone cannot fetch that pointer until an
-approved fork publication; use the delivered Git bundles for offline handoff.
-Do not work around this by resetting the submodule to upstream and presenting
-that as the reviewed candidate. No push, PR, merge or release is authorized.
+The reviewed source is now fetchable from the existing
+`https://github.com/Gerbzz/SkinStrike.git` repository, using separate source
+branches: `foundation/upstream-subcraft-0.1.7` preserves the upstream baseline,
+and `foundation/subcraft-source-2026-10-21` preserves candidate `7958dc6` and its
+complete original history. `.gitmodules` uses this source mirror. The [exact
+upstream-to-candidate comparison](https://github.com/Gerbzz/SkinStrike/compare/foundation/upstream-subcraft-0.1.7...foundation/subcraft-source-2026-10-21)
+keeps the source changes reviewable without merging unrelated SubCraft history
+into SkinStrike main. No new external account or repository is required.
+
+Original commit authors, full source, assets, attribution and licenses remain
+intact. The parent candidate stays a separate draft integration; publication
+does not adopt it as the default executable or authorize migration, release or
+deployment. Fresh recursive checkout is a required hosted gate. Offline bundles
+remain preserved historical snapshots, rather than the only source handoff.
 
 ## Retained feature inventory
 
@@ -156,6 +165,17 @@ the boundary gate. Native acceptance uses a licensed synthetic GLB: orbit/pick, 
 across a seam, layers/masks, undo/redo, portable save/reopen, export, cancellation
 and isolated state inspection. Only an actual successful native capture can be
 delivered as a screenshot, with its Library ID and exact build evidence.
+
+The draft publication also runs `.github/workflows/subcraft-candidate.yml` on
+the exact PR head. It recursively fetches the public submodule, checks
+gitlink/contract/HEAD/ancestry, retained baseline files and unchanged assets and
+notices, then exercises launcher parsing/Info and no-slot/no-receipt refusals.
+Windows/Linux jobs require all 18/19 export tests and 4/5 candidate boundary
+tests respectively, plus candidate and upstream feature-off application entry
+type-checks. Logs and source hashes are retained as workflow artifacts. These
+are hosted source gates; they do not establish Room execution approval or a
+real 3D painting/CS2 acceptance result. Local heavy builds remain coordinated
+with the current slot owner (Effect at publication).
 
 Before treating it as a user replacement: repair project-save staging/conflicts,
 aggregate project/mesh/decoded resource ceilings, bake undo and stale-session

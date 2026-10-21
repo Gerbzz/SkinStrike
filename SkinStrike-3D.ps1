@@ -91,7 +91,7 @@ if ($Action -eq 'Info') {
 }
 
 if ($Action -eq 'Build' -and -not $BuildSlotConfirmed) {
-    throw 'Build deferred: coordinate release of the reserved CAD build slot, then explicitly pass -BuildSlotConfirmed.'
+    throw 'Build deferred: coordinate release of the shared native build slot, then explicitly pass -BuildSlotConfirmed.'
 }
 if ($sourceDirty) { throw 'Commit/review candidate source changes before Build or Run so the binary has an immutable source identity.' }
 if ($contract.candidate_commit -ne $sourceHead) { throw 'Candidate source does not match the reviewed contract commit.' }
