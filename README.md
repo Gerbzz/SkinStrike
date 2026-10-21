@@ -63,7 +63,7 @@ Material intent records a target finish-style note for the artist; it does not c
 
 ## Build and try it
 
-Use Windows and a Rust toolchain with edition 2024 support. The first-party desktop app uses egui/eframe; image decoding and PNG writing use Rust libraries.
+Use Windows and Rust 1.89 or newer. The first-party desktop app uses egui/eframe; image decoding and PNG writing use Rust libraries. Project saves coordinate through a persistent sibling `.<project-filename>.skinstrike-save.lock` file; keep it in place so participating saves to the same path share an OS lock. Other editors do not participate in this protocol.
 
 ~~~powershell
 cargo test --locked --features native-ui
