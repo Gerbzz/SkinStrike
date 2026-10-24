@@ -13,6 +13,12 @@
 
 **Explore a finish in layers.**
 
+## Rust direction and migration status
+
+- **Target:** A Rust-native 3D texture-authoring application built on the selected SubCraft foundation, starting with CS2 requirements; the legacy 2D editor is not the final selected application.
+- **Current implementation:** The [pinned 3D foundation candidate](docs/FOUNDATION_CANDIDATE.md) is already Rust and has its own explicit entry point. The separate root [Cargo package](Cargo.toml) and [library](src/lib.rs) remain the preserved Rust 2D editor, not an accepted replacement for the 3D target.
+- **Remaining migration:** Complete 3D candidate integration and native workflow/asset acceptance before adoption. This is an unfinished application transition, not a new language port; no automatic legacy-project conversion, completed 3D migration or game-ready output is claimed.
+
 ## 3D foundation candidate
 
 The primary 3D development candidate is now the preserved full SubCraft 0.1.7 app at `foundation/subcraft`, with explicit entry point `./SkinStrike-3D.ps1`. Run `./SkinStrike-3D.ps1 -Action Info` to inspect its exact source, feature and executable path without building or launching. See [candidate provenance, retained features and acceptance gates](docs/FOUNDATION_CANDIDATE.md).
