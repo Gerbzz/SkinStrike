@@ -83,9 +83,9 @@ jobs:
           if ((Get-Content .candidate/verification/candidate-boundary.log -Raw) -notmatch "test result: ok\. $env:CANDIDATE_TEST_COUNT passed; 0 failed;") { throw 'Expected candidate boundary count did not execute' }
       - name: Decode exact approved native candidate window icon
         run: |
-          cargo test --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft-ui --features skinstrike-candidate --lib native_icon_decodes_the_complete_approved_canvas --target $env:VERIFY_TARGET --target-dir .candidate/target-subcraft -j 1 -- --test-threads=1 2>&1 | Tee-Object .candidate/verification/branding.log
+          cargo test --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft-ui --features skinstrike-candidate --lib theme::candidate_branding_tests --target $env:VERIFY_TARGET --target-dir .candidate/target-subcraft -j 1 -- --test-threads=1 2>&1 | Tee-Object .candidate/verification/branding.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if ((Get-Content .candidate/verification/branding.log -Raw) -notmatch 'test result: ok\. 1 passed; 0 failed;') { throw 'Native branding regression did not execute' }
+          if ((Get-Content .candidate/verification/branding.log -Raw) -notmatch 'test result: ok\. 2 passed; 0 failed;') { throw 'Native branding regression did not execute' }
       - name: Type-check candidate application entry
         run: |
           cargo check --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft --bin subcraft --features skinstrike-candidate --target $env:VERIFY_TARGET --target-dir .candidate/target-subcraft -j 1 2>&1 | Tee-Object .candidate/verification/candidate-entry.log

@@ -34,7 +34,7 @@ Intermediate genuine native capture of the prior branding candidate at `85d35ed6
 It shows the unmodified built-in procedural sample crate, rendered with Mesa software
 Vulkan under Xvfb—not CS2 assets or a game-ready skin. This earlier capture still
 shows the upstream **SubCraft** UI name; it is not a rebrand mockup. The selected
-`a38ed3e1` candidate corrects the header name/art; its fresh capture is pending.
+`c7d7a1a6` candidate corrects the header name/art with DPI-aware minification; its fresh capture is pending.
 [Exact source, binary and image provenance](docs/ACTIVE_3D_SCREENSHOT_PROVENANCE.md)
 records the visual inspection and limits. This hosted capture does not resolve the
 separate local Windows Application Control block or establish full workflow acceptance.
