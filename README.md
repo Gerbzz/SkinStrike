@@ -25,9 +25,15 @@ The primary 3D development candidate is now the preserved full SubCraft 0.1.7 ap
 
 **Evaluation candidate:** its native export suite compiled and executed with **18 passing tests** on `7958dc6`. Windows Application Control then blocked a dependency build script for the candidate UI tests (4551); those tests did not compile or execute, and were not retried. The desktop app has not been built or launched locally. See the [exact verification and remaining gate](docs/verification/2026-10-21-subcraft-native-gates.md). Existing root Cargo commands, source, projects and screenshots below belong to the preserved **legacy 2D editor**. No executable or editable project was replaced or converted. The 3D entry point never falls back to that editor.
 
-SkinStrike lets CS2 creators compose a finish from a base PNG, color, positioned artwork, and hand-painted strokes. Keep an editable project in a local collection, then export a full-resolution PNG for review.
+## Active 3D preview
 
-## Highlights
+The selected app is the pinned 3D candidate above. The screenshots below are historical
+legacy 2D captures, **not** screenshots of that candidate. A source-matched native 3D
+capture is being verified separately; no substitute or mock screenshot is presented.
+
+The preserved **legacy 2D editor** lets CS2 creators compose a finish from a base PNG, color, positioned artwork, and hand-painted strokes. Keep an editable project in a local collection, then export a full-resolution PNG for review.
+
+## Legacy 2D editor highlights
 
 - Combine color washes and artwork layers.
 - Paint round-brush strokes on an editable layer, with undo and saved stroke data.
@@ -35,19 +41,19 @@ SkinStrike lets CS2 creators compose a finish from a base PNG, color, positioned
 - Find saved finishes by collection and title, with covers rendered from each project.
 - Keep an editable source and export a PNG.
 
-## Creator preview
+## Historical legacy 2D previews — not the selected 3D app
 
-![SkinStrike native project library with eight rendered synthetic finish covers](assets/screenshots/skinstrike-creator-gallery-current.png)
+![Historical legacy 2D SkinStrike project library with eight rendered synthetic finish covers](assets/screenshots/skinstrike-creator-gallery-current.png)
 
-![SkinStrike native editor displaying a saved synthetic paint layer](assets/screenshots/skinstrike-paint-editor-current.png)
+![Historical legacy 2D SkinStrike editor displaying a saved synthetic paint layer](assets/screenshots/skinstrike-paint-editor-current.png)
 
 These [genuine native captures](docs/NATIVE_CREATOR_ACCEPTANCE.md) came from tested source `91f558d94e4455fede5eb63a27fc5c63332b006d`. Eight original synthetic local projects supplied the rendered covers; only the screenshots were published. They first appeared on main as [development previews](docs/DEVELOPMENT_CREATOR_PREVIEW.md). The implementation and review are in [PR #1](https://github.com/Gerbzz/SkinStrike/pull/1). The [earlier editor capture](docs/SCREENSHOT_PROVENANCE.md) shows the narrower canvas before this work.
 
-## Current status
+## Legacy 2D status
 
 Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have automated coverage. The creator work adds bounded brush strokes and a local visual project library; its hosted Windows tests pass and its two captured native states were visually inspected. The [core persistence review](docs/CORE_PERSISTENCE_ACCEPTANCE.md) records exact-binary save, reopen, export, and error checks. The [acceptance checklist](docs/CREATOR_ACCEPTANCE.md) tracks remaining interaction checks. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
 
-## A finish from source to export
+## Legacy 2D workflow: a finish from source to export
 
 1. Open a base PNG. SkinStrike reads its dimensions, alpha distribution, and SHA-256 fingerprint.
 2. Add named color washes, artwork PNG layers, or a paint layer. Choose Brush, color, and size to draw on an unlocked visible paint layer. Each stroke is stored with the project and can be undone. Position, scale, rotate, reorder, hide, and adjust layers. Lock a layer to prevent edits; copies start unlocked.
@@ -67,7 +73,7 @@ The desktop UI exposes a project gallery, the finish editor, layer controls, and
 
 The editor supports undo/redo, background import and export work, cooperative cancellation, and stale-result checks. Gallery cards load in a worker and their covers use the saved project's compositor. An individual PNG decoder call may run until it returns. Imported assets are embedded for portable reopening; the originals are not silently overwritten.
 
-## What the current UI helps you inspect
+## What the legacy 2D UI helps you inspect
 
 The startup window shows the approved SkinStrike logo, a restrained PWDS credit, local collections, searchable project cards, actual rendered covers, and missing/corrupt project states. The editor shows the opened texture, paint and artwork tools, layers, color and alpha views, UV reference overlay, project and export paths, and operation errors. Alpha data view suppresses the colored UV overlay so grayscale values stay readable. The properties panel scrolls in compact windows.
 
