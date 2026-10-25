@@ -223,6 +223,19 @@ pub fn app_icon() -> egui::IconData {
 #[cfg(all(test, feature = "skinstrike-candidate"))]
 mod candidate_branding_tests {
     #[test]
+    fn header_art_resolves_physical_pixels_without_cropping() {
+        for size in [18, 27, 36, 54, 72] {
+            let image = super::header_image(size);
+            assert_eq!(image.size, [size as usize, size as usize]);
+            assert_eq!(image.pixels.len(), (size * size) as usize);
+            let approved = image::load_from_memory(include_bytes!("../../../assets/branding/SkinStrike.png"))
+                .expect("approved PNG").into_rgba8();
+            let expected = image::imageops::resize(&approved, size, size, image::imageops::FilterType::Lanczos3);
+            let expected = egui::ColorImage::from_rgba_unmultiplied([size as usize, size as usize], expected.as_raw());
+            assert_eq!(image.pixels, expected.pixels, "header must preserve the full approved canvas");
+        }
+    }
+    #[test]
     fn native_icon_decodes_the_complete_approved_canvas() {
         let icon = super::app_icon();
         assert_eq!(super::APP_NAME, "SkinStrike");
@@ -240,12 +253,11 @@ pub const APP_NAME: &str = "SubCraft";
 pub fn brand_mark(ui: &mut egui::Ui, rect: egui::Rect) {
     #[cfg(feature = "skinstrike-candidate")]
     {
-        let id = egui::Id::new("skinstrike-approved-header-logo");
+        let pixels = (rect.width() * ui.ctx().pixels_per_point()).round().clamp(1.0, 512.0) as u32;
+        let id = egui::Id::new(("skinstrike-approved-header-logo", pixels));
         let cached = ui.ctx().data_mut(|data| data.get_temp::<egui::TextureHandle>(id));
         let texture = cached.unwrap_or_else(|| {
-            let icon = app_icon();
-            let image = egui::ColorImage::from_rgba_unmultiplied(
-                [icon.width as usize, icon.height as usize], &icon.rgba);
+            let image = header_image(pixels);
             let texture = ui.ctx().load_texture("SkinStrike approved logo", image, egui::TextureOptions::LINEAR);
             ui.ctx().data_mut(|data| data.insert_temp(id, texture.clone()));
             texture
@@ -257,4 +269,14 @@ pub fn brand_mark(ui: &mut egui::Ui, rect: egui::Rect) {
         ui.painter().rect_filled(rect, 0.0, ACCENT);
         ui.painter().rect_filled(egui::Rect::from_min_size(rect.min + egui::vec2(5.0, 5.0), egui::vec2(8.0, 8.0)), 0.0, BG_2);
     }
+}
+
+/// Full-canvas minification at the resolved physical size avoids sampling aliasing.
+#[cfg(feature = "skinstrike-candidate")]
+fn header_image(pixels: u32) -> egui::ColorImage {
+    let icon = app_icon();
+    let source = image::RgbaImage::from_raw(icon.width, icon.height, icon.rgba)
+        .expect("approved icon dimensions match its pixels");
+    let resized = image::imageops::resize(&source, pixels, pixels, image::imageops::FilterType::Lanczos3);
+    egui::ColorImage::from_rgba_unmultiplied([pixels as usize, pixels as usize], resized.as_raw())
 }

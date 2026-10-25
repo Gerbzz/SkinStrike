@@ -29,6 +29,9 @@ class Branding(unittest.TestCase):
         self.assertIn('RichText::new(theme::APP_NAME)',app)
         self.assertIn('format!("{} - {name}{star}", crate::theme::APP_NAME)',dialogs)
         self.assertIn('ColorImage::from_rgba_unmultiplied',theme)
+        self.assertIn('image::imageops::FilterType::Lanczos3',theme)
+        self.assertIn('rect.width() * ui.ctx().pixels_per_point()',theme)
+        self.assertIn('egui::Id::new(("skinstrike-approved-header-logo", pixels))',theme)
     def test_candidate_windows_resource_and_derivatives(self):
         code = (ROOT/'apps/subcraft/build.rs').read_text(encoding="utf-8")
         self.assertIn('CARGO_FEATURE_SKINSTRIKE_CANDIDATE', code)
