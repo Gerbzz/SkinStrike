@@ -114,6 +114,11 @@ fn main() -> ExitCode {
     };
     let mut options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
+            .with_icon(egui::IconData {
+                rgba: include_bytes!("../../assets/branding/SkinStrike-128.rgba").to_vec(),
+                width: 128,
+                height: 128,
+            })
             .with_inner_size([1440.0, 900.0])
             .with_min_inner_size([960.0, 620.0]),
         ..Default::default()
