@@ -225,7 +225,36 @@ mod candidate_branding_tests {
     #[test]
     fn native_icon_decodes_the_complete_approved_canvas() {
         let icon = super::app_icon();
+        assert_eq!(super::APP_NAME, "SkinStrike");
         assert_eq!((icon.width, icon.height), (512, 512));
         assert_eq!(icon.rgba.len(), 512 * 512 * 4);
+    }
+}
+
+/// Candidate-facing product identity; the feature-off donor remains unchanged.
+#[cfg(feature = "skinstrike-candidate")]
+pub const APP_NAME: &str = "SkinStrike";
+#[cfg(not(feature = "skinstrike-candidate"))]
+pub const APP_NAME: &str = "SubCraft";
+
+pub fn brand_mark(ui: &mut egui::Ui, rect: egui::Rect) {
+    #[cfg(feature = "skinstrike-candidate")]
+    {
+        let id = egui::Id::new("skinstrike-approved-header-logo");
+        let cached = ui.ctx().data_mut(|data| data.get_temp::<egui::TextureHandle>(id));
+        let texture = cached.unwrap_or_else(|| {
+            let icon = app_icon();
+            let image = egui::ColorImage::from_rgba_unmultiplied(
+                [icon.width as usize, icon.height as usize], &icon.rgba);
+            let texture = ui.ctx().load_texture("SkinStrike approved logo", image, egui::TextureOptions::LINEAR);
+            ui.ctx().data_mut(|data| data.insert_temp(id, texture.clone()));
+            texture
+        });
+        egui::Image::new((texture.id(), rect.size())).paint_at(ui, rect);
+    }
+    #[cfg(not(feature = "skinstrike-candidate"))]
+    {
+        ui.painter().rect_filled(rect, 0.0, ACCENT);
+        ui.painter().rect_filled(egui::Rect::from_min_size(rect.min + egui::vec2(5.0, 5.0), egui::vec2(8.0, 8.0)), 0.0, BG_2);
     }
 }

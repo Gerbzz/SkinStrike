@@ -513,9 +513,8 @@ impl SubcraftApp {
         let left_edge = ui.scope_builder(egui::UiBuilder::new().max_rect(bar).layout(egui::Layout::left_to_right(egui::Align::Center)), |ui| {
             // Brand mark.
             let (r, _) = ui.allocate_exact_size(egui::vec2(18.0, 18.0), egui::Sense::hover());
-            ui.painter().rect_filled(r, 0.0, theme::ACCENT);
-            ui.painter().rect_filled(egui::Rect::from_min_size(r.min + egui::vec2(5.0, 5.0), egui::vec2(8.0, 8.0)), 0.0, theme::BG_2);
-            ui.label(RichText::new("SubCraft").font(theme::font_strong(14.0)).color(theme::TEXT));
+            theme::brand_mark(ui, r);
+            ui.label(RichText::new(theme::APP_NAME).font(theme::font_strong(14.0)).color(theme::TEXT));
             ui.add_space(10.0);
             self.menu(ui)
         }).inner;

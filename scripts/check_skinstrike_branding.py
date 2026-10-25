@@ -19,6 +19,16 @@ class Branding(unittest.TestCase):
         self.assertIn('#[cfg(not(feature = "skinstrike-candidate"))]\n    let png = include_bytes!("../assets/icon.png")', code)
         self.assertIn('image::load_from_memory_with_format(png,', code)
         self.assertIn('.with_icon(std::sync::Arc::new(theme::app_icon()))', (ROOT/'crates/ui/src/lib.rs').read_text(encoding="utf-8"))
+    def test_candidate_header_and_title(self):
+        theme=(ROOT/'crates/ui/src/theme.rs').read_text(encoding="utf-8")
+        app=(ROOT/'crates/ui/src/app.rs').read_text(encoding="utf-8")
+        dialogs=(ROOT/'crates/ui/src/dialogs.rs').read_text(encoding="utf-8")
+        self.assertIn('pub const APP_NAME: &str = "SkinStrike";',theme)
+        self.assertIn('pub const APP_NAME: &str = "SubCraft";',theme)
+        self.assertIn('theme::brand_mark(ui, r);',app)
+        self.assertIn('RichText::new(theme::APP_NAME)',app)
+        self.assertIn('format!("{} - {name}{star}", crate::theme::APP_NAME)',dialogs)
+        self.assertIn('ColorImage::from_rgba_unmultiplied',theme)
     def test_candidate_windows_resource_and_derivatives(self):
         code = (ROOT/'apps/subcraft/build.rs').read_text(encoding="utf-8")
         self.assertIn('CARGO_FEATURE_SKINSTRIKE_CANDIDATE', code)

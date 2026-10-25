@@ -265,14 +265,14 @@ pub fn title(state: &UiState) -> String {
         .map(str::to_string)
         .unwrap_or_else(|| format!("{} (unsaved)", state.session.scene().mesh.name));
     let star = if state.session.is_modified() { " *" } else { "" };
-    format!("SubCraft - {name}{star}")
+    format!("{} - {name}{star}", crate::theme::APP_NAME)
 }
 
 /// Native caption keeps candidate provenance without changing the compact header.
 pub fn native_title(state: &UiState) -> String {
     let title = title(state);
     #[cfg(feature = "skinstrike-candidate")]
-    { format!("{} - {}", crate::candidate::TITLE, title.trim_start_matches("SubCraft - ")) }
+    { format!("{} - {}", crate::candidate::TITLE, title.trim_start_matches(format!("{} - ", crate::theme::APP_NAME).as_str())) }
     #[cfg(not(feature = "skinstrike-candidate"))]
     { title }
 }
