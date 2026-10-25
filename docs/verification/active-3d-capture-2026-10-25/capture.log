@@ -1,0 +1,25 @@
+[INFO] SubCraft 0.1.7 on Ubuntu 24.04.5 LTS (x86_64) (log times are UTC)
+[WARN] error setting XSETTINGS; Xft options won't reload automatically
+[WARN] XRandR reported that the display's 0mm in size, which is certifiably insane
+[WARN] Software rasterizer detected - loss of performance expected. backend: Vulkan, device_type: Cpu, name: "llvmpipe (LLVM 20.1.2, 256 bits)", driver: "llvmpipe", driver_info: "Mesa 25.2.8-0ubuntu0.24.04.4 (LLVM 20.1.2)", vendor: Mesa (0x10005), subgroup_size: 8..=8, transient_saves_memory: Some(false), limit_bucket: None
+[INFO] asset library: /home/runner/work/_temp/skinstrike-active-3d/isolated-home/library
+[INFO] GPU: llvmpipe (LLVM 20.1.2, 256 bits) (Vulkan, driver llvmpipe Mesa 25.2.8-0ubuntu0.24.04.4 (LLVM 20.1.2))
+[INFO] recovery copies go to /home/runner/work/_temp/skinstrike-active-3d/isolated-home/data/recovery/bf6936d7a3884fdf8aa9137b396f40b2
+[INFO] action: New Fill Layer
+[INFO] action: Move Layer
+[INFO] action: Fill
+[INFO] action: Fill
+[INFO] action: Rename Layer
+[INFO] action: New Fill Layer
+[INFO] action: Rename Layer
+[INFO] action: Fill
+[INFO] action: Fill
+[INFO] action: Fill
+[INFO] action: Fill
+[INFO] action: Fill
+[INFO] action: Add Mask
+[INFO] action: Add Mask Effect
+[INFO] action: Move Layer
+[INFO] action: Paint Stroke
+[INFO] action: Paint Stroke
+[INFO] screenshot saved to /home/runner/work/_temp/skinstrike-active-3d/skinstrike-active-3d-demo.png

@@ -1,0 +1,22 @@
+{
+  "parent_commit": "06d2ae8bb299bfaa569ae450337bf421aab79f57",
+  "foundation_commit": "85d35ed6ad74f98aa79f5c2d931ded104ebc05df",
+  "binary_sha256": "ecd5878d04ff18586b2b180301ee823715ef78c24e1180a2dcc910ae23623004",
+  "screenshot": "skinstrike-active-3d-demo.png",
+  "screenshot_sha256": "0f84fd1769267a80f8b942efb9a661caa326bd0c577256881c077f2ffa70b3c1",
+  "dimensions": [
+    1600,
+    940
+  ],
+  "command": [
+    "subcraft",
+    "--demo",
+    "--screenshot",
+    "skinstrike-active-3d-demo.png"
+  ],
+  "feature": "skinstrike-candidate",
+  "renderer": "Mesa software Vulkan under Xvfb",
+  "scene": "Unmodified built-in procedural demo on the sample crate; not CS2 game assets",
+  "workflow_run_id": "40231707117",
+  "native_ui_visual_review": "pending; numeric checks do not establish visual acceptance"
+}

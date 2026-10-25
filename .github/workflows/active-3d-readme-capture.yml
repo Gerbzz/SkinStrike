@@ -1,0 +1,54 @@
+name: Active 3D README capture
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/active-3d-readme-capture.yml'
+      - 'scripts/capture-active-3d.sh'
+      - 'foundation/**'
+permissions:
+  contents: read
+jobs:
+  active-3d-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RAYON_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Verify exact source and retained candidate isolation gates
+        shell: pwsh
+        run: ./scripts/verify-foundation-contract.ps1 -ExpectedHead $env:EXPECTED_HEAD
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install Pillow==12.3.0
+      - name: Verify active candidate artwork
+        run: python foundation/subcraft/scripts/check_skinstrike_branding.py
+      - name: Install native software-rendering dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb xauth libxkbcommon-dev libxkbcommon-x11-0 mesa-vulkan-drivers
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build the pinned active 3D candidate, not the root legacy editor
+        run: cargo build --locked --manifest-path foundation/subcraft/Cargo.toml -p subcraft --bin subcraft --features skinstrike-candidate --target-dir .candidate/capture-target -j 2
+      - name: Capture genuine native procedural demo and source-bound evidence
+        run: bash scripts/capture-active-3d.sh
+      - name: Preserve genuine capture and provenance for visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skinstrike-active-3d-${{ github.event.pull_request.head.sha }}
+          path: |
+            ${{ runner.temp }}/skinstrike-active-3d/*.png
+            ${{ runner.temp }}/skinstrike-active-3d/provenance.json
+            ${{ runner.temp }}/skinstrike-active-3d/capture.log
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,5 @@
+Capture run 40234535679 completed successfully.
+The native application used Mesa software Vulkan under Xvfb.
+The built-in procedural demo executed and saved the source-bound PNG.
+The original raw log remains in the hosted workflow artifact; runner paths and detailed environment metadata are intentionally omitted here.
+See provenance.json and ACTIVE_3D_SCREENSHOT_PROVENANCE.md for exact source/binary/image hashes and visual inspection.

@@ -23,11 +23,25 @@
 
 The primary 3D development candidate is now the preserved full SubCraft 0.1.7 app at `foundation/subcraft`, with explicit entry point `./SkinStrike-3D.ps1`. Run `./SkinStrike-3D.ps1 -Action Info` to inspect its exact source, feature and executable path without building or launching. See [candidate provenance, retained features and acceptance gates](docs/FOUNDATION_CANDIDATE.md).
 
-**Evaluation candidate:** its native export suite compiled and executed with **18 passing tests** on `7958dc6`. Windows Application Control then blocked a dependency build script for the candidate UI tests (4551); those tests did not compile or execute, and were not retried. The desktop app has not been built or launched locally. See the [exact verification and remaining gate](docs/verification/2026-10-21-subcraft-native-gates.md). Existing root Cargo commands, source, projects and screenshots below belong to the preserved **legacy 2D editor**. No executable or editable project was replaced or converted. The 3D entry point never falls back to that editor.
+**Earlier local evaluation (historical):** its native export suite compiled and executed with **18 passing tests** on `7958dc6`. Windows Application Control then blocked a dependency build script for the candidate UI tests (4551); those tests did not compile or execute, and were not retried. The desktop app has not been built or launched locally. See the [exact verification and remaining gate](docs/verification/2026-10-21-subcraft-native-gates.md). Existing root Cargo commands, source, projects and screenshots below belong to the preserved **legacy 2D editor**. No executable or editable project was replaced or converted. The 3D entry point never falls back to that editor.
 
-SkinStrike lets CS2 creators compose a finish from a base PNG, color, positioned artwork, and hand-painted strokes. Keep an editable project in a local collection, then export a full-resolution PNG for review.
+## Active 3D preview
 
-## Highlights
+![Active SkinStrike 3D foundation displaying the built-in procedural crate demo, with wood and moss layers](assets/screenshots/skinstrike-active-3d-demo-c7d7a1a6.png)
+
+Genuine native capture of the selected 3D foundation at `c7d7a1a6`, built and run in
+[hosted capture run 40234535679](https://github.com/Gerbzz/SkinStrike/actions/runs/40234535679).
+It shows the unmodified built-in procedural sample crate, rendered with Mesa software
+Vulkan under Xvfb—not CS2 assets or a game-ready skin. The candidate's header and title use SkinStrike with the approved artwork;
+upstream source ancestry and legal credits are preserved.
+[Exact source, binary and image provenance](docs/ACTIVE_3D_SCREENSHOT_PROVENANCE.md)
+records the visual inspection and limits. This hosted capture does not resolve the
+separate local Windows Application Control block or establish full workflow acceptance.
+The older 2D screenshots below are retained only as historical references.
+
+The preserved **legacy 2D editor** lets CS2 creators compose a finish from a base PNG, color, positioned artwork, and hand-painted strokes. Keep an editable project in a local collection, then export a full-resolution PNG for review.
+
+## Legacy 2D editor highlights
 
 - Combine color washes and artwork layers.
 - Paint round-brush strokes on an editable layer, with undo and saved stroke data.
@@ -35,19 +49,19 @@ SkinStrike lets CS2 creators compose a finish from a base PNG, color, positioned
 - Find saved finishes by collection and title, with covers rendered from each project.
 - Keep an editable source and export a PNG.
 
-## Creator preview
+## Historical legacy 2D previews — not the selected 3D app
 
-![SkinStrike native project library with eight rendered synthetic finish covers](assets/screenshots/skinstrike-creator-gallery-current.png)
+![Historical legacy 2D SkinStrike project library with eight rendered synthetic finish covers](assets/screenshots/skinstrike-creator-gallery-current.png)
 
-![SkinStrike native editor displaying a saved synthetic paint layer](assets/screenshots/skinstrike-paint-editor-current.png)
+![Historical legacy 2D SkinStrike editor displaying a saved synthetic paint layer](assets/screenshots/skinstrike-paint-editor-current.png)
 
 These [genuine native captures](docs/NATIVE_CREATOR_ACCEPTANCE.md) came from tested source `91f558d94e4455fede5eb63a27fc5c63332b006d`. Eight original synthetic local projects supplied the rendered covers; only the screenshots were published. They first appeared on main as [development previews](docs/DEVELOPMENT_CREATOR_PREVIEW.md). The implementation and review are in [PR #1](https://github.com/Gerbzz/SkinStrike/pull/1). The [earlier editor capture](docs/SCREENSHOT_PROVENANCE.md) shows the narrower canvas before this work.
 
-## Current status
+## Legacy 2D status
 
 Image-authoring prototype. Core layer, alpha, project, CLI, and desktop paths have automated coverage. The creator work adds bounded brush strokes and a local visual project library; its hosted Windows tests pass and its two captured native states were visually inspected. The [core persistence review](docs/CORE_PERSISTENCE_ACCEPTANCE.md) records exact-binary save, reopen, export, and error checks. The [acceptance checklist](docs/CREATOR_ACCEPTANCE.md) tracks remaining interaction checks. Valve-compatible material and texture round trips remain unverified; this does not produce a game-ready skin.
 
-## A finish from source to export
+## Legacy 2D workflow: a finish from source to export
 
 1. Open a base PNG. SkinStrike reads its dimensions, alpha distribution, and SHA-256 fingerprint.
 2. Add named color washes, artwork PNG layers, or a paint layer. Choose Brush, color, and size to draw on an unlocked visible paint layer. Each stroke is stored with the project and can be undone. Position, scale, rotate, reorder, hide, and adjust layers. Lock a layer to prevent edits; copies start unlocked.
@@ -67,7 +81,7 @@ The desktop UI exposes a project gallery, the finish editor, layer controls, and
 
 The editor supports undo/redo, background import and export work, cooperative cancellation, and stale-result checks. Gallery cards load in a worker and their covers use the saved project's compositor. An individual PNG decoder call may run until it returns. Imported assets are embedded for portable reopening; the originals are not silently overwritten.
 
-## What the current UI helps you inspect
+## What the legacy 2D UI helps you inspect
 
 The startup window shows the approved SkinStrike logo, a restrained PWDS credit, local collections, searchable project cards, actual rendered covers, and missing/corrupt project states. The editor shows the opened texture, paint and artwork tools, layers, color and alpha views, UV reference overlay, project and export paths, and operation errors. Alpha data view suppresses the colored UV overlay so grayscale values stay readable. The properties panel scrolls in compact windows.
 
@@ -94,7 +108,7 @@ cargo run --locked --bin skinstrike -- export <project.json> <new-output.png>
 
 Color channels and opacity are integers from 0 to 255. To exercise the new channel and UV workflow with synthetic images, run `cargo run --locked --example channel_uv_smoke -- <new-output-directory>` from this folder. The example produces a decoded export and an offscreen editor render; the latter is not a native-window screenshot.
 
-## Scope and next steps
+## Legacy 2D scope and next steps
 
 SkinStrike offers a simple round brush, without advanced mask painting or pressure-sensitive brush dynamics. It has no rotatable verified weapon preview, Valve material generation, or verified Counter-Strike asset bundle. The tested hosted editor compiled, passed automated tests, and rendered the documented synthetic projects in real native windows. Hands-on interaction review and clean-machine packaging are still pending.
 
