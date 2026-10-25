@@ -10,7 +10,7 @@
   "local_candidate": {
     "path": "foundation/subcraft",
     "branch": "skinstrike/foundation-candidate-2026-10-21",
-    "commit": "7958dc640982f014e56a4f9df81c2ffc0f1f0aee",
+    "commit": "85d35ed6ad74f98aa79f5c2d931ded104ebc05df",
     "export_repair_commit": "afd85b6e7e84dcc60a4e152efb1528ac9da24798",
     "retains_upstream_ancestry": true,
     "publicly_available": true,
@@ -26,7 +26,10 @@
     "existing_executable_replaced": false,
     "upstream_assets_or_license_files_modified": false,
     "upstream_license_expression": "MIT OR Apache-2.0",
-    "font_notices": ["Inter SIL OFL 1.1", "Phosphor MIT"],
+    "font_notices": [
+      "Inter SIL OFL 1.1",
+      "Phosphor MIT"
+    ],
     "starter_pack": "Aalzard-supplied CC0 1.0; original credits retained"
   },
   "verification": {
@@ -44,5 +47,13 @@
     "legacy_save_test_block": "Windows Application Control error 4551; executable never executed and not retried",
     "historical_37_tests": "Predates revised legacy save code; does not validate this candidate",
     "screenshot_library_id": null
+  },
+  "branding_update": {
+    "date": "2026-10-25",
+    "previous_candidate_commit": "7958dc640982f014e56a4f9df81c2ffc0f1f0aee",
+    "candidate_commit": "85d35ed6ad74f98aa79f5c2d931ded104ebc05df",
+    "scope": "Approved SkinStrike artwork and candidate-feature runtime/Windows icons only; donor baseline and original assets/licenses unchanged.",
+    "approved_png_sha256": "e1523b9145d862eeb35dd566afe6d697984cf404f30cfd5c8f7d3b1ecefddff4",
+    "verification": "Source contracts verified locally; exact-head hosted candidate checks required. Prior Room execution denial remains unchanged."
   }
 }

@@ -13,14 +13,17 @@ class ApprovedBranding(unittest.TestCase):
         self.assertEqual(sha256(p.read_bytes()).hexdigest(), APPROVED)
         with Image.open(p) as image:
             self.assertEqual(image.size, (512,512))
-        self.assertIn('assets/branding/' + APP + '.png', (ROOT/'README.md').read_text())
-        self.assertEqual(json.loads((p.parent/'provenance.json').read_text())['sha256'], APPROVED)
-    def test_runtime_derivative_and_binding(self):
-        source = Image.open(ROOT/'assets/branding'/(APP+'.png')).convert('RGBA')
-        raw = ROOT/'assets/branding'/(APP+'-128.rgba')
-        self.assertTrue(raw.exists(), 'runtime derivative absent')
-        self.assertEqual(raw.read_bytes(), source.resize((128,128),Image.Resampling.LANCZOS).tobytes())
-        self.assertIn(APP+'-128.rgba', (ROOT/'src/bin/skinstrike-ui.rs').read_text())
+        self.assertIn('assets/branding/' + APP + '.png', (ROOT/'README.md').read_text(encoding="utf-8"))
+        self.assertEqual(json.loads((p.parent/'provenance.json').read_text(encoding="utf-8"))['sha256'], APPROVED)
+    def test_selected_foundation_pin_and_canonical_source(self):
+        import subprocess
+        contract = json.loads((ROOT/'foundation/candidate.json').read_text(encoding='utf-8'))
+        self.assertEqual(contract['candidate_commit'], '85d35ed6ad74f98aa79f5c2d931ded104ebc05df')
+        entry = subprocess.check_output(['git','ls-files','--stage','--','foundation/subcraft'],cwd=ROOT,text=True)
+        self.assertEqual(entry.split()[:2], ['160000',contract['candidate_commit']])
+        source = ROOT/'foundation/subcraft/assets/branding/SkinStrike.png'
+        self.assertTrue(source.is_file(), 'initialize pinned foundation submodule')
+        self.assertEqual(source.read_bytes(), (ROOT/'assets/branding/SkinStrike.png').read_bytes())
 
 if __name__ == "__main__":
     unittest.main()
