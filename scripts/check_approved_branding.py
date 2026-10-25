@@ -18,7 +18,7 @@ class ApprovedBranding(unittest.TestCase):
     def test_selected_foundation_pin_and_canonical_source(self):
         import subprocess
         contract = json.loads((ROOT/'foundation/candidate.json').read_text(encoding='utf-8'))
-        self.assertEqual(contract['candidate_commit'], '85d35ed6ad74f98aa79f5c2d931ded104ebc05df')
+        self.assertEqual(contract['candidate_commit'], 'a38ed3e12a4d3c2e39b1724ecaccc86e409e611f')
         entry = subprocess.check_output(['git','ls-files','--stage','--','foundation/subcraft'],cwd=ROOT,text=True)
         self.assertEqual(entry.split()[:2], ['160000',contract['candidate_commit']])
         source = ROOT/'foundation/subcraft/assets/branding/SkinStrike.png'

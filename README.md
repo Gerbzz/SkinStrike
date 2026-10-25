@@ -29,11 +29,12 @@ The primary 3D development candidate is now the preserved full SubCraft 0.1.7 ap
 
 ![Active SkinStrike 3D foundation displaying the built-in procedural crate demo, with wood and moss layers](assets/screenshots/skinstrike-active-3d-demo-85d35ed6.png)
 
-Genuine native capture of the selected 3D foundation at `85d35ed6`, built and run in
+Intermediate genuine native capture of the prior branding candidate at `85d35ed6`, built and run in
 [hosted capture run 40231707117](https://github.com/Gerbzz/SkinStrike/actions/runs/40231707117).
 It shows the unmodified built-in procedural sample crate, rendered with Mesa software
-Vulkan under Xvfb—not CS2 assets or a game-ready skin. The current candidate still
-shows its upstream **SubCraft** UI name; this image is not a rebrand mockup.
+Vulkan under Xvfb—not CS2 assets or a game-ready skin. This earlier capture still
+shows the upstream **SubCraft** UI name; it is not a rebrand mockup. The selected
+`a38ed3e1` candidate corrects the header name/art; its fresh capture is pending.
 [Exact source, binary and image provenance](docs/ACTIVE_3D_SCREENSHOT_PROVENANCE.md)
 records the visual inspection and limits. This hosted capture does not resolve the
 separate local Windows Application Control block or establish full workflow acceptance.

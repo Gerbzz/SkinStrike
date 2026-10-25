@@ -10,7 +10,7 @@
   "local_candidate": {
     "path": "foundation/subcraft",
     "branch": "skinstrike/foundation-candidate-2026-10-21",
-    "commit": "85d35ed6ad74f98aa79f5c2d931ded104ebc05df",
+    "commit": "a38ed3e12a4d3c2e39b1724ecaccc86e409e611f",
     "export_repair_commit": "afd85b6e7e84dcc60a4e152efb1528ac9da24798",
     "retains_upstream_ancestry": true,
     "publicly_available": true,
@@ -55,5 +55,12 @@
     "scope": "Approved SkinStrike artwork and candidate-feature runtime/Windows icons only; donor baseline and original assets/licenses unchanged.",
     "approved_png_sha256": "e1523b9145d862eeb35dd566afe6d697984cf404f30cfd5c8f7d3b1ecefddff4",
     "verification": "Source contracts verified locally; exact-head hosted candidate checks required. Prior Room execution denial remains unchanged."
+  },
+  "header_branding_update": {
+    "date": "2026-10-25",
+    "previous_candidate_commit": "85d35ed6ad74f98aa79f5c2d931ded104ebc05df",
+    "candidate_commit": "a38ed3e12a4d3c2e39b1724ecaccc86e409e611f",
+    "scope": "Candidate-feature SkinStrike header name and approved full-canvas PNG; feature-off donor artwork/name and original legal credits retained. Compact project title uses the candidate name.",
+    "verification": "Four source contracts pass locally; native compilation and fresh source-bound capture pending exact-head CI. Earlier source85d35 hosted screenshot remains intermediate proof only."
   }
 }
