@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'foundation/**'
+      - 'assets/branding/**'
+      - 'scripts/check_approved_branding.py'
+      - 'README.md'
       - 'SkinStrike-3D.ps1'
       - 'scripts/verify-foundation-contract.ps1'
       - '.gitmodules'
