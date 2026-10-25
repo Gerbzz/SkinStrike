@@ -4,7 +4,7 @@
   "upstream_url": "https://github.com/Aalzard/subcraft.git",
   "upstream_version": "0.1.7",
   "upstream_commit": "71e49fde7e4e1dba188a6589c9e5a139d1e3d9d5",
-  "candidate_commit": "7958dc640982f014e56a4f9df81c2ffc0f1f0aee",
+  "candidate_commit": "85d35ed6ad74f98aa79f5c2d931ded104ebc05df",
   "source_repository_url": "https://github.com/Gerbzz/SkinStrike.git",
   "source_branch": "foundation/subcraft-source-2026-10-21",
   "source_path": "foundation/subcraft",
@@ -12,7 +12,9 @@
   "package": "subcraft",
   "binary": "subcraft",
   "target": "x86_64-pc-windows-msvc",
-  "features": ["skinstrike-candidate"],
+  "features": [
+    "skinstrike-candidate"
+  ],
   "entry_point": "SkinStrike-3D.ps1",
   "legacy_manifest": "Cargo.toml",
   "legacy_binary": "skinstrike-ui",
