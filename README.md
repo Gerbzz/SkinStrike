@@ -23,13 +23,21 @@
 
 The primary 3D development candidate is now the preserved full SubCraft 0.1.7 app at `foundation/subcraft`, with explicit entry point `./SkinStrike-3D.ps1`. Run `./SkinStrike-3D.ps1 -Action Info` to inspect its exact source, feature and executable path without building or launching. See [candidate provenance, retained features and acceptance gates](docs/FOUNDATION_CANDIDATE.md).
 
-**Evaluation candidate:** its native export suite compiled and executed with **18 passing tests** on `7958dc6`. Windows Application Control then blocked a dependency build script for the candidate UI tests (4551); those tests did not compile or execute, and were not retried. The desktop app has not been built or launched locally. See the [exact verification and remaining gate](docs/verification/2026-10-21-subcraft-native-gates.md). Existing root Cargo commands, source, projects and screenshots below belong to the preserved **legacy 2D editor**. No executable or editable project was replaced or converted. The 3D entry point never falls back to that editor.
+**Earlier local evaluation (historical):** its native export suite compiled and executed with **18 passing tests** on `7958dc6`. Windows Application Control then blocked a dependency build script for the candidate UI tests (4551); those tests did not compile or execute, and were not retried. The desktop app has not been built or launched locally. See the [exact verification and remaining gate](docs/verification/2026-10-21-subcraft-native-gates.md). Existing root Cargo commands, source, projects and screenshots below belong to the preserved **legacy 2D editor**. No executable or editable project was replaced or converted. The 3D entry point never falls back to that editor.
 
 ## Active 3D preview
 
-The selected app is the pinned 3D candidate above. The screenshots below are historical
-legacy 2D captures, **not** screenshots of that candidate. A source-matched native 3D
-capture is being verified separately; no substitute or mock screenshot is presented.
+![Active SkinStrike 3D foundation displaying the built-in procedural crate demo, with wood and moss layers](assets/screenshots/skinstrike-active-3d-demo-85d35ed6.png)
+
+Genuine native capture of the selected 3D foundation at `85d35ed6`, built and run in
+[hosted capture run 40231707117](https://github.com/Gerbzz/SkinStrike/actions/runs/40231707117).
+It shows the unmodified built-in procedural sample crate, rendered with Mesa software
+Vulkan under Xvfb—not CS2 assets or a game-ready skin. The current candidate still
+shows its upstream **SubCraft** UI name; this image is not a rebrand mockup.
+[Exact source, binary and image provenance](docs/ACTIVE_3D_SCREENSHOT_PROVENANCE.md)
+records the visual inspection and limits. This hosted capture does not resolve the
+separate local Windows Application Control block or establish full workflow acceptance.
+The older 2D screenshots below are retained only as historical references.
 
 The preserved **legacy 2D editor** lets CS2 creators compose a finish from a base PNG, color, positioned artwork, and hand-painted strokes. Keep an editable project in a local collection, then export a full-resolution PNG for review.
 
@@ -100,7 +108,7 @@ cargo run --locked --bin skinstrike -- export <project.json> <new-output.png>
 
 Color channels and opacity are integers from 0 to 255. To exercise the new channel and UV workflow with synthetic images, run `cargo run --locked --example channel_uv_smoke -- <new-output-directory>` from this folder. The example produces a decoded export and an offscreen editor render; the latter is not a native-window screenshot.
 
-## Scope and next steps
+## Legacy 2D scope and next steps
 
 SkinStrike offers a simple round brush, without advanced mask painting or pressure-sensitive brush dynamics. It has no rotatable verified weapon preview, Valve material generation, or verified Counter-Strike asset bundle. The tested hosted editor compiled, passed automated tests, and rendered the documented synthetic projects in real native windows. Hands-on interaction review and clean-machine packaging are still pending.
 
