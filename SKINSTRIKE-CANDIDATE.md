@@ -26,5 +26,19 @@ receipt. Root Cargo there still builds the preserved legacy 2D editor; existing
 SkinStrike JSON has no destructive conversion path here. This candidate uses
 native `.subcraft` projects. CS2-specific output remains an acceptance gate.
 
-No branding assets, executable installation, credentials, upstream remote,
-public release or user project files were modified by this evaluation.
+No executable installation, credentials, upstream remote, public release or user
+project files were modified by this evaluation.
+
+## Approved candidate branding — 2026-10-25
+
+![Approved SkinStrike logo](assets/branding/SkinStrike.png)
+
+The `skinstrike-candidate` feature embeds the exact approved 512px SkinStrike PNG
+for its native window and full-canvas ICO derivatives for Windows resources.
+Feature-off SubCraft artwork and behavior are unchanged.
+Source SHA-256: `e1523b9145d862eeb35dd566afe6d697984cf404f30cfd5c8f7d3b1ecefddff4`.
+Run `python scripts/check_skinstrike_branding.py` (Pillow) for source, binding and
+frame-pixel contracts; `python scripts/generate_skinstrike_icons.py` regenerates
+only the candidate ICO. No cropping, recoloring or padding changes are applied.
+Local asset contracts pass; native candidate compilation/UI verification remains
+a separate gate. Upstream version and source ancestry remain unchanged.

@@ -209,9 +209,23 @@ pub fn dock_style(ui_style: &egui::Style) -> DockStyle {
 
 /// Window / taskbar icon: the app artwork (same as the .exe, installer and Linux icon).
 pub fn app_icon() -> egui::IconData {
-    let img = image::load_from_memory_with_format(include_bytes!("../assets/icon.png"), image::ImageFormat::Png)
+    #[cfg(feature = "skinstrike-candidate")]
+    let png = include_bytes!("../../../assets/branding/SkinStrike.png").as_slice();
+    #[cfg(not(feature = "skinstrike-candidate"))]
+    let png = include_bytes!("../assets/icon.png").as_slice();
+    let img = image::load_from_memory_with_format(png, image::ImageFormat::Png)
         .expect("embedded icon is a valid PNG")
         .into_rgba8();
     let (width, height) = img.dimensions();
     egui::IconData { rgba: img.into_raw(), width, height }
+}
+
+#[cfg(all(test, feature = "skinstrike-candidate"))]
+mod candidate_branding_tests {
+    #[test]
+    fn native_icon_decodes_the_complete_approved_canvas() {
+        let icon = super::app_icon();
+        assert_eq!((icon.width, icon.height), (512, 512));
+        assert_eq!(icon.rgba.len(), 512 * 512 * 4);
+    }
 }
