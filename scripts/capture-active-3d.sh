@@ -26,7 +26,7 @@ from pathlib import Path
 root,source=map(Path,sys.argv[1:])
 contract=json.loads((root/'foundation/candidate.json').read_text(encoding='utf-8'))
 actual=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
-assert actual==contract['candidate_commit']=='85d35ed6ad74f98aa79f5c2d931ded104ebc05df', 'Unexpected active source'
+assert actual==contract['candidate_commit']=='a38ed3e12a4d3c2e39b1724ecaccc86e409e611f', 'Unexpected active source'
 assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain'],text=True).strip(), 'Dirty candidate source'
 PY
 # This is the app's existing native viewport screenshot hook and its built-in procedural sample.
