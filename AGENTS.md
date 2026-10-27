@@ -1,0 +1,5 @@
+# SkinStrike source selection
+
+- The selected 3D development candidate is the full SubCraft foundation at `foundation/subcraft`, pinned by `foundation/candidate.json` to `c7d7a1a633e32a5fa90d8cd2ec8deaa405ca5b1c`. Inspect its identity with `./SkinStrike-3D.ps1 -Action Info`; the script is the explicit candidate entrypoint. Preserve the upstream source, ancestry, licenses, credits and existing patches.
+- The root `Cargo.toml` and `src/` belong to the superseded 2D editor, not the selected 3D application. Do not revive it as the primary app or present its screenshots as current 3D progress. Historical evidence and old workflow are segregated in `docs/HISTORICAL_2D_EDITOR.md`.
+- Existing 2D JSON projects have no automatic conversion to the candidate's `.subcraft` format. Preserve projects, compatibility paths and useful independent behavior; do not remove or silently migrate them. The 3D candidate still needs its documented native workflow and asset acceptance, and hosted preview is not proof of a completed application or game-ready output.
