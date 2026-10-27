@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/SkinStrike.png" alt="Approved SkinStrike chameleon logo" width="160" height="160">
+  <img src="docs/branding/SkinStrike.webp" alt="Approved SkinStrike chameleon logo" width="160" height="160">
 </p>
 
 <h1 align="center">SkinStrike</h1>
