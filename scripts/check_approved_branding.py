@@ -13,7 +13,13 @@ class ApprovedBranding(unittest.TestCase):
         self.assertEqual(sha256(p.read_bytes()).hexdigest(), APPROVED)
         with Image.open(p) as image:
             self.assertEqual(image.size, (512,512))
-        self.assertIn('assets/branding/' + APP + '.png', (ROOT/'README.md').read_text(encoding="utf-8"))
+        docs_icon = ROOT/'docs/branding'/(APP+'.webp')
+        self.assertEqual(sha256(docs_icon.read_bytes()).hexdigest(), '8c9fd56daa466f6abdefac61d9c3e5c859bb28d9e29ac37b33f409065ff69f91')
+        with Image.open(docs_icon) as image:
+            self.assertEqual(image.format, 'WEBP')
+            self.assertEqual(image.size, (512,512))
+            image.load()
+        self.assertIn('src="docs/branding/' + APP + '.webp"', (ROOT/'README.md').read_text(encoding="utf-8"))
         self.assertEqual(json.loads((p.parent/'provenance.json').read_text(encoding="utf-8"))['sha256'], APPROVED)
     def test_selected_foundation_pin_and_canonical_source(self):
         import subprocess
